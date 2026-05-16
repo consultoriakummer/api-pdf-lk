@@ -127,15 +127,16 @@ def safe(val, sufixo=""):
     return f"{val}{sufixo}"
 
 def data_hoje():
-    mêses = ["janeiro","fevereiro","marco","abril","maio","junho",
+    meses = ["janeiro","fevereiro","marco","abril","maio","junho",
              "julho","agosto","setembro","outubro","novembro","dezembro"]
     d = datetime.now()
-    return f"{d.day} de {mêses[d.month-1]} de {d.year}"
+    return f"{d.day} de {meses[d.month-1]} de {d.year}"
 
 def estrelas_str(n=5): return "★" * n + "☆" * (5-n)
 
-def avaliar_oms(exercício, tempo_treino, cardio, tempo_cardio):
-    es = str(exercício or "").lower(); ts = str(tempo_treino or "").lower()
+def avaliar_oms(exercicio, tempo_treino, cardio, tempo_cardio):
+    # FIX: parâmetros sem acento
+    es = str(exercicio or "").lower(); ts = str(tempo_treino or "").lower()
     cs = str(cardio or "").lower();   ct = str(tempo_cardio or "").lower()
     freq = 0
     if "1x" in es: freq=1
@@ -169,7 +170,8 @@ def meta_personalizada(dados):
     peso     = to_float(dados.get("peso"))
     peso_obj = to_float(dados.get("peso_obj"))
     imc      = to_float(dados.get("imc")) or calc_imc(dados.get("peso"),dados.get("altura"))
-    exerc    = str(dados.get("exercício") or "").lower()
+    # FIX: sem acento
+    exerc    = str(dados.get("exercicio") or "").lower()
     estresse = to_float(dados.get("estresse")) or 5
     sexo     = str(dados.get("sexo") or "").lower()
     eh_emag  = ("perder" in objetivo or "peso" in objetivo or
@@ -185,9 +187,9 @@ def meta_personalizada(dados):
         elif imc_v < 35: taxa=0.75
         elif imc_v < 40: taxa=1.0
         else: taxa=1.2
-        mêses = max(1, round((diff/taxa)/4.3))
+        meses = max(1, round((diff/taxa)/4.3))
         return {"tipo":"emagrecimento","diff":round(diff,1),"taxa":taxa,
-                "mêses":mêses,"imc":imc_v,"peso_atual":peso,"peso_obj":peso_obj}
+                "meses":meses,"imc":imc_v,"peso_atual":peso,"peso_obj":peso_obj}
     elif eh_massa:
         if any(x in exerc for x in ["4x","5x","todos"]): gmin=0.1;gmax=0.3
         elif any(x in exerc for x in ["3x","2-3","3-4"]): gmin=0.3;gmax=0.5
@@ -200,7 +202,7 @@ def meta_personalizada(dados):
         freq=0
         for x,v in [("1x",1),("2x",2),("3x",3),("4x",4),("5x",5)]:
             if x in exerc: freq=v; break
-        return {"tipo":"definição","freq_atual":freq,"freq_meta":min(freq+2,5),
+        return {"tipo":"definicao","freq_atual":freq,"freq_meta":min(freq+2,5),
                 "estresse_atual":int(estresse),"estresse_meta":max(int(estresse)-3,2)}
     else:
         freq=0
@@ -233,7 +235,7 @@ def pag_capa(c, d):
     c.setFillColor(CARD_MEDIO_E)
     c.rect(0, H-82*mm, W, 3*mm, fill=1, stroke=0)
 
-    # nome em destáque
+    # nome em destaque
     c.setFillColor(VERDE_CLARO)
     c.setFont(FONT_B, 14)
     c.drawString(20*mm, H-95*mm, "CRIADO EXCLUSIVAMENTE PARA")
@@ -252,7 +254,6 @@ def pag_capa(c, d):
         c.drawString(20*mm, H-136*mm, f"Meta: {obj}")
 
     # data
-    c.setFont(FONT_N, 13)
     c.setFont(FONT_N, 11)
     c.drawString(20*mm, H-152*mm, f"Baseado nas suas respostas  •  {data_hoje()}")
 
@@ -266,7 +267,7 @@ def pag_capa(c, d):
         cols = [
             (str(int(meta["peso_atual"])), "kg", "HOJE"),
             (str(int(meta["peso_obj"])),   "kg", "META"),
-            (str(meta["mêses"]),           "mêses" if meta["mêses"]>1 else "mês", "ESTIMATIVA"),
+            (str(meta["meses"]),           "meses" if meta["meses"]>1 else "mes", "ESTIMATIVA"),
         ]
     elif meta.get("tipo") == "massa":
         cols = [
@@ -285,7 +286,6 @@ def pag_capa(c, d):
     y_num = H - 167*mm
     for i, (num, unid, label) in enumerate(cols):
         cx = 20*mm + i * col_w
-        # linha divisória vertical
         if i > 0:
             c.setStrokeColor(CARD_MEDIO_E)
             c.setLineWidth(1)
@@ -305,11 +305,11 @@ def pag_capa(c, d):
     c.setLineWidth(1)
     c.line(20*mm, H-210*mm, W-20*mm, H-210*mm)
 
-    # aviso de confidencialidade + base
+    # aviso
     c.setFillColor(CINZA_TEXTO)
     c.setFont(FONT_N, 8)
     c.drawCentredString(W/2, H-218*mm,
-        "Este diagnóstico e baseado nas suas respostas e não substitui avaliação médica.")
+        "Este diagnostico e baseado nas suas respostas e nao substitui avaliacao medica.")
 
     rodape(c, 1, dark=True)
     c.showPage()
@@ -378,7 +378,6 @@ def pag_bio(c, d):
     if imc_f:
         ratio = (min(max(imc_f,15.0),42.0)-15.0)/27.0
         mx = 25*mm + bw*ratio
-        # triangulo
         path = c.beginPath()
         path.moveTo(mx, y_bar+bh+1*mm)
         path.lineTo(mx-3*mm, y_bar+bh+5*mm)
@@ -403,11 +402,10 @@ def pag_bio(c, d):
         draw_card(c, 20*mm, y_meta-55*mm, W-40*mm, 58*mm, fill=VERDE_ESCURO)
         c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 9)
         c.drawCentredString(W/2, y_meta-6*mm, "💪  SUA META DE EMAGRECIMENTO")
-        # 3 colunas
         cdata = [
             (str(int(meta["peso_atual"])), "kg", "HOJE"),
             (str(int(meta["peso_obj"])), "kg", "META"),
-            (f"{meta['mêses']}", "mêses", "ESTIMATIVA"),
+            (f"{meta['meses']}", "meses", "ESTIMATIVA"),
         ]
         cw3 = (W-40*mm)/3
         for i,(v,u,l) in enumerate(cdata):
@@ -491,14 +489,15 @@ def pag_meta(c, d):
                       "Seu estilo de vida e rotina atual")
     itens = [
         ("🎯", "Objetivo principal",  obj_texto(d.get("objetivo",""))),
-        ("🥗", "Alimentação",         safe(d.get("alimentação"))),
-        ("🏃", "Exercício atual",     safe(d.get("exercício"))),
+        # FIX: chaves sem acento
+        ("🥗", "Alimentação",         safe(d.get("alimentacao"))),
+        ("🏃", "Exercício atual",     safe(d.get("exercicio"))),
         ("⏱️", "Tempo de treino",     safe(d.get("tempo_treino"))),
         ("🚴", "Cardio",              safe(d.get("cardio"))),
         ("⏰", "Tempo de cardio",     safe(d.get("tempo_cardio"))),
         ("😤", "Nível de estresse",   safe(d.get("estresse"))),
         ("💪", "Comprometimento",     f"{safe(d.get('compro'))}/10"),
-        ("⚠️", "Limitações",          safe(d.get("limitação"))),
+        ("⚠️", "Limitações",          safe(d.get("limitacao"))),
     ]
     y = H-42*mm
     for emoji, lbl, val in itens:
@@ -527,10 +526,11 @@ def pag_perfil(c, d):
     obj      = obj_texto(d.get("objetivo",""))
     comp_raw = to_float(d.get("compro")) or 0
     imc_val  = d.get("imc") or calc_imc(d.get("peso"),d.get("altura"))
-    lim      = str(d.get("limitação") or "Nenhuma")
+    # FIX: chaves sem acento
+    lim      = str(d.get("limitacao") or "Nenhuma")
     med      = str(d.get("medicamentos") or "Nenhum")
-    alim     = safe(d.get("alimentação"))
-    exerc    = safe(d.get("exercício"))
+    alim     = safe(d.get("alimentacao"))
+    exerc    = safe(d.get("exercicio"))
     estresse = safe(d.get("estresse"))
 
     c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 14)
@@ -607,7 +607,8 @@ def pag_oms(c, d):
     draw_header_light(c, "🏃", "SEÇÃO 4 — Laudo de Atividade Física",
                       "Comparativo com as recomendações da OMS")
 
-    total, status = avaliar_oms(d.get("exercício",""), d.get("tempo_treino",""),
+    # FIX: chaves sem acento
+    total, status = avaliar_oms(d.get("exercicio",""), d.get("tempo_treino",""),
                                 d.get("cardio",""), d.get("tempo_cardio",""))
     cor_st = {
         "insuficiente": VERMELHO,
@@ -622,9 +623,7 @@ def pag_oms(c, d):
         "excelente":    "ACIMA DA META OMS 🏆",
     }.get(status,"")
 
-    # card grande de status — cor de fundo muda pelo nível
     draw_card(c, 20*mm, H-105*mm, W-40*mm, 58*mm, fill=cor_st)
-    # faixa mais escura no topo do card com o label
     faixa_cor = colors.HexColor("#8B0000") if status=="insuficiente" else (
                 colors.HexColor("#A05500") if status=="parcial" else (
                 colors.HexColor("#3A8020") if status=="adequado" else
@@ -638,7 +637,6 @@ def pag_oms(c, d):
     c.setFillColor(BRANCO); c.setFont(FONT_N, 10)
     c.drawCentredString(W/2, H-84*mm, "atividade física estimada por semana")
 
-    # mensagem
     if status == "insuficiente":
         msg = "😅  Você está abaixo da recomendação da OMS (150 min/semana). Não se preocupe — seu protocolo vai aumentar progressivamente seu volume de treino de forma segura e sustentavel."
     elif status == "parcial":
@@ -651,7 +649,6 @@ def pag_oms(c, d):
     draw_card(c, 20*mm, H-135*mm, W-40*mm, 26*mm, fill=CARD_CLARO)
     wrap(c, msg, 24*mm, H-112*mm, W-48*mm, size=10, cor=TEXTO_ESCURO, leading=13, align=TA_LEFT)
 
-    # recomendações OMS
     y_rec = H-148*mm
     c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
     c.drawString(20*mm, y_rec, "📌  Recomendação da OMS para adultos:")
@@ -668,7 +665,6 @@ def pag_oms(c, d):
         c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 8)
         c.drawString(145*mm, y_rec-5*mm, f"({ex_r})")
 
-    # como o protocolo ajuda
     y_cons = y_rec-30*mm
     draw_card(c, 20*mm, y_cons-50*mm, W-40*mm, 54*mm, fill=CARD_CLARO)
     c.setFillColor(VERDE_LIMA)
@@ -692,11 +688,9 @@ def pag_app(c, d):
 
     nome = d.get("nome") or "você"
 
-    # frase destáque
     c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 14)
     c.drawCentredString(W/2, H-48*mm, f"{nome}, você vai ter tudo isso na palma da mão:")
 
-    # prints do app lado a lado centralizados
     app1 = os.path.join(BASE_DIR, "app_print1.png")
     app2 = os.path.join(BASE_DIR, "app_print2.png")
     app_w = 42*mm; app_h = 76*mm; gap_app = 8*mm
@@ -712,11 +706,9 @@ def pag_app(c, d):
         c.drawImage(app2, app_x2, app_y_top-app_h,
                     width=app_w, height=app_h, preserveAspectRatio=True, mask="auto")
 
-    # legenda prints
     c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 9)
     c.drawCentredString(W/2, app_y_top-app_h-4*mm, "Interface real do app MFIT Personal")
 
-    # 6 diferenciais em 2 colunas abaixo dos prints
     diferenciais = [
         ("🏋️", "Protocolo personalizado",     "Treinos montados do zero pelo Luis exclusivamente para o seu perfil e objetivo."),
         ("🎬", "Videos de todos os exercícios","Cada exercício tem video do próprio Luis demonstrando a execução correta."),
@@ -736,11 +728,9 @@ def pag_app(c, d):
         c.roundRect(cx_d, cy_d-ch_d, 4*mm, ch_d, 2, fill=1, stroke=0)
         c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
         c.drawString(cx_d+7*mm, cy_d-8*mm, f"{emoji}  {tit}")
-        # descrição com wrap para não sair do card
         wrap(c, desc, cx_d+7*mm, cy_d-13*mm, cw_d-12*mm,
              size=8, cor=CINZA_TEXTO, leading=10, align=TA_LEFT)
 
-    # botao CTA — abaixo dos 3 rows de cards
     y_btn = y_d - 3*(ch_d+4*mm) - 10*mm
     bw=W-40*mm; bh=16*mm; bx=20*mm
     c.setFillColor(VERDE_LIMA)
@@ -764,7 +754,6 @@ def pag_oferta(c, d):
     comp_raw = to_float(d.get("compro")) or 0
     meta     = meta_personalizada(d)
 
-    # frase personalizada forte
     if meta.get("tipo") == "emagrecimento":
         frase_dest = f"{nome}, você tem tudo para perder {meta['diff']} kg."
     elif meta.get("tipo") == "massa":
@@ -775,10 +764,10 @@ def pag_oferta(c, d):
     draw_card(c, 20*mm, H-68*mm, W-40*mm, 30*mm, fill=VERDE_ESCURO)
     c.setFillColor(BRANCO); c.setFont(FONT_B, 14)
     c.drawCentredString(W/2, H-51*mm, frase_dest)
-    nível = "seu alto nível de comprometimento" if comp_raw>=8 else "seu comprometimento"
+    nivel = "seu alto nível de comprometimento" if comp_raw>=8 else "seu comprometimento"
     c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
     c.drawCentredString(W/2, H-62*mm,
-        f"Com base no seu objetivo de {obj} e em {nível} ({int(comp_raw)}/10)")
+        f"Com base no seu objetivo de {obj} e em {nivel} ({int(comp_raw)}/10)")
 
     planos = [
         ("Individual  —  1 Protocolo", "60 dias de acompanhamento", "R$ 119",
@@ -822,7 +811,7 @@ def pag_depoimentos(c, d):
 
     deps = [
         ("Ana Paula, 34 anos", "Perdi 8kg em 60 dias seguindo o protocolo. O acompanhamento pelo app fez toda a diferença! Nunca imaginei conseguir me comprometer tanto.", 5),
-        ("Marcos e Juliana",   "Fizemos o plano dupla e foi incrível! Nos motivamos juntos e em 3 mêses transformamos completamente nosso estilo de vida.", 5),
+        ("Marcos e Juliana",   "Fizemos o plano dupla e foi incrível! Nos motivamos juntos e em 3 meses transformamos completamente nosso estilo de vida.", 5),
         ("Fernanda, 28 anos",  "Nunca pensei que conseguiria manter uma rotina de treinos. O protocolo e prático e se encaixa perfeitamente na minha rotina corrida.", 5),
         ("Cristiane, 41 anos", "Com duas filhas e trabalho não sobrava tempo. O Luis montou um treino perfeito para minha realidade e em 60 dias ja vi resultados.", 5),
         ("Roberto, 52 anos",   "Comecei com receio por causa da idade e de uma hernia. O protocolo foi totalmente adaptado e hoje me sinto mais disposto do que aos 40!", 5),
@@ -834,7 +823,6 @@ def pag_depoimentos(c, d):
         draw_card(c, 20*mm, y-h_box, W-40*mm, h_box, fill=CARD_CLARO)
         c.setFillColor(VERDE_LIMA)
         c.roundRect(20*mm, y-h_box, 6*mm, h_box, 2, fill=1, stroke=0)
-        # estrelas
         c.setFillColor(DOURADO); c.setFont(FONT_N, 10)
         c.drawString(30*mm, y-7*mm, "★"*nstars)
         c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
@@ -843,13 +831,11 @@ def pag_depoimentos(c, d):
              size=10, cor=CINZA_TEXTO, leading=12, align=TA_LEFT)
         y -= h_box+5*mm
 
-    # CTA final — card com frase + botão separado abaixo
     y_cta = y - 8*mm
     draw_card(c, 20*mm, y_cta-18*mm, W-40*mm, 20*mm, fill=VERDE_ESCURO)
     c.setFillColor(BRANCO); c.setFont(FONT_B, 14)
     c.drawCentredString(W/2, y_cta-12*mm, f"{nome}, agora é a sua vez.")
 
-    # botão abaixo do card, com espaço
     bw=100*mm; bh=13*mm; bx=W/2-bw/2
     y_btn = y_cta - 18*mm - 8*mm
     c.setFillColor(VERDE_LIMA)
@@ -886,12 +872,16 @@ if __name__ == "__main__":
     dados = {
         "nome": "Samara", "objetivo": "perder_peso", "sexo": "Feminino",
         "peso": "95", "altura": "163", "idade": "32", "peso_obj": "70",
-        "imc": None, "limitação": "joelho", "medicamentos": "tireoide",
-        "exercício": "treina 2x/semana", "tempo_treino": "30 a 45 min",
+        "imc": None,
+        "limitacao": "joelho",       # sem acento
+        "medicamentos": "tireoide",
+        "exercicio": "treina 2x/semana",  # sem acento
+        "tempo_treino": "30 a 45 min",
         "cardio": "caminhada", "tempo_cardio": "20 min",
-        "alimentação": "alimentação razoavel", "compro": "9", "estresse": "7",
+        "alimentacao": "alimentacao razoavel",  # sem acento
+        "compro": "9", "estresse": "7",
     }
     pdf = gerar_pdf_diagnostico(dados)
-    with open("/mnt/user-data/outputs/diagnóstico_v9.pdf", "wb") as f:
+    with open("/mnt/user-data/outputs/diagnostico_corrigido.pdf", "wb") as f:
         f.write(pdf)
     print("OK — 8 paginas")
