@@ -761,13 +761,17 @@ def pag_oferta(c, d):
     else:
         frase_dest = f"{nome}, você tem tudo para transformar sua qualidade de vida."
 
-    draw_card(c, 20*mm, H-68*mm, W-40*mm, 30*mm, fill=VERDE_ESCURO)
+    draw_card(c, 20*mm, H-72*mm, W-40*mm, 34*mm, fill=VERDE_ESCURO)
     c.setFillColor(BRANCO); c.setFont(FONT_B, 14)
     c.drawCentredString(W/2, H-51*mm, frase_dest)
     nivel = "seu alto nível de comprometimento" if comp_raw>=8 else "seu comprometimento"
     c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
+    # linha 1: objetivo
     c.drawCentredString(W/2, H-62*mm,
-        f"Com base no seu objetivo de {obj} e em {nivel} ({int(comp_raw)}/10)")
+        f"Com base no seu objetivo de {obj}")
+    # linha 2: comprometimento
+    c.drawCentredString(W/2, H-69*mm,
+        f"e em {nivel} ({int(comp_raw)}/10)")
 
     planos = [
         ("Individual  —  1 Protocolo", "60 dias de acompanhamento", "R$ 119",
@@ -779,7 +783,7 @@ def pag_oferta(c, d):
         ("Dupla  —  3 Protocolos", "180 dias para você + 1 pessoa", "R$ 479",
          "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112639&page=112636"),
     ]
-    ph=42*mm; gap=4*mm; y_s=H-76*mm
+    ph=42*mm; gap=4*mm; y_s=H-80*mm
     for i,(tit,desc,preco,url) in enumerate(planos):
         y=y_s-i*(ph+gap)
         draw_card(c, 20*mm, y-ph, W-40*mm, ph, fill=CARD_CLARO)
