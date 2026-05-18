@@ -1,4 +1,4 @@
-import io, os, base64, tempfile
+import io, os, base64
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -6,12 +6,12 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
+from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER, TA_RIGHT
 
 W, H = A4
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ── EMOJIS EMBUTIDOS (base64) — funciona em qualquer servidor ─────────────────
+# ── EMOJIS EMBUTIDOS — será injetado pelo script de build ─────────────────────
 EMOJI_B64 = {
     "alarme": "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",
     "alvo": "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",
@@ -51,7 +51,6 @@ EMOJI_B64 = {
 _emoji_cache = {}
 
 def draw_emoji(c, nome, x, y, size=5):
-    """Desenha emoji a partir de base64 embutido. size em mm."""
     if nome not in EMOJI_B64:
         return
     s = size * mm
@@ -62,31 +61,27 @@ def draw_emoji(c, nome, x, y, size=5):
     buf.seek(0)
     from reportlab.lib.utils import ImageReader
     img = ImageReader(buf)
-    c.drawImage(img, x, y - s, width=s, height=s,
-                preserveAspectRatio=True, mask='auto')
+    c.drawImage(img, x, y - s, width=s, height=s, preserveAspectRatio=True, mask='auto')
 
 # ── PALETA ────────────────────────────────────────────────────────────────────
 FUNDO_ESCURO  = colors.HexColor("#0D1F0F")
 CARD_ESCURO   = colors.HexColor("#152918")
 CARD_MEDIO_E  = colors.HexColor("#1E3D22")
-
 FUNDO_CLARO   = colors.HexColor("#F5F9F5")
 CARD_CLARO    = colors.HexColor("#E8F5EC")
-CARD_VERDE    = colors.HexColor("#D4EDD9")
-
 VERDE_LIMA    = colors.HexColor("#5BBF2A")
 VERDE_ESCURO  = colors.HexColor("#2D5A1B")
 VERDE_MEDIO   = colors.HexColor("#4A8C5C")
 VERDE_CLARO   = colors.HexColor("#A8D5B5")
 BRANCO        = colors.white
 TEXTO_ESCURO  = colors.HexColor("#1A2E12")
-TEXTO_MEDIO   = colors.HexColor("#3A5C27")
 CINZA_TEXTO   = colors.HexColor("#5A6B5A")
 DOURADO       = colors.HexColor("#C8A84B")
 LARANJA       = colors.HexColor("#E07B00")
 AZUL          = colors.HexColor("#3A7BBF")
 VERMELHO      = colors.HexColor("#C0392B")
 AMARELO       = colors.HexColor("#F0C040")
+CINZA_CLARO   = colors.HexColor("#DDDDDD")
 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -94,8 +89,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 def _registrar_fontes():
     base = os.path.dirname(os.path.abspath(__file__))
     try:
-        pdfmetrics.registerFont(TTFont("DVSans",     os.path.join(base, "DejaVuSans.ttf")))
-        pdfmetrics.registerFont(TTFont("DVSans-Bold",os.path.join(base, "DejaVuSans-Bold.ttf")))
+        pdfmetrics.registerFont(TTFont("DVSans",      os.path.join(base, "DejaVuSans.ttf")))
+        pdfmetrics.registerFont(TTFont("DVSans-Bold", os.path.join(base, "DejaVuSans-Bold.ttf")))
         return "DVSans", "DVSans-Bold"
     except:
         return "Helvetica", "Helvetica-Bold"
@@ -104,47 +99,48 @@ FONT_N, FONT_B = _registrar_fontes()
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 def draw_bg_dark(c):
-    c.setFillColor(FUNDO_ESCURO)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    c.setFillColor(FUNDO_ESCURO); c.rect(0, 0, W, H, fill=1, stroke=0)
 
 def draw_bg_light(c):
-    c.setFillColor(FUNDO_CLARO)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    c.setFillColor(FUNDO_CLARO); c.rect(0, 0, W, H, fill=1, stroke=0)
 
 def draw_card(c, x, y, w, h, fill=CARD_CLARO, radius=5):
-    c.setFillColor(fill)
-    c.roundRect(x, y, w, h, radius, fill=1, stroke=0)
+    c.setFillColor(fill); c.roundRect(x, y, w, h, radius, fill=1, stroke=0)
 
-# header sem emoji — título e subtítulo centralizados
 def draw_header_light(c, emoji_nome, titulo, subtitulo=None):
-    HEADER_H = 38*mm
+    HEADER_H = 40*mm
     c.setFillColor(VERDE_ESCURO)
     c.rect(0, H - HEADER_H, W, HEADER_H, fill=1, stroke=0)
     c.setFillColor(VERDE_LIMA)
     c.rect(0, H - HEADER_H, W, 3*mm, fill=1, stroke=0)
-    title_y = H - 18*mm
-    c.setFillColor(BRANCO)
-    c.setFont(FONT_B, 17)
+    title_y = H - 17*mm
+    c.setFillColor(BRANCO); c.setFont(FONT_B, 18)
     c.drawCentredString(W/2, title_y, titulo)
     if subtitulo:
-        c.setFillColor(VERDE_CLARO)
-        c.setFont(FONT_N, 11)
-        c.drawCentredString(W/2, title_y - 12*mm, subtitulo)
+        c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 12)
+        c.drawCentredString(W/2, title_y - 13*mm, subtitulo)
 
-HEADER_BOTTOM = lambda: H - 38*mm  # y onde o header termina
+HEADER_BOTTOM = lambda: H - 40*mm
 
 def rodape(c, num, total=8, dark=False):
     bg = CARD_ESCURO if dark else VERDE_ESCURO
-    c.setFillColor(bg)
-    c.rect(0, 0, W, 12*mm, fill=1, stroke=0)
-    c.setFillColor(VERDE_LIMA)
-    c.setFont(FONT_N, 8)
+    c.setFillColor(bg); c.rect(0, 0, W, 13*mm, fill=1, stroke=0)
+    c.setFillColor(VERDE_LIMA); c.setFont(FONT_N, 9)
     c.drawString(20*mm, 4*mm, "Luis Kummer Personal Trainer")
     c.setFillColor(VERDE_CLARO)
     c.drawRightString(W-20*mm, 4*mm, f"{num} / {total}")
 
-def wrap(c, texto, x, y, larg, size=10, cor=TEXTO_ESCURO, leading=14, align=TA_JUSTIFY):
+def wrap(c, texto, x, y, larg, size=11, cor=TEXTO_ESCURO, leading=15, align=TA_JUSTIFY):
     st = ParagraphStyle("s", fontName=FONT_N, fontSize=size,
+                        textColor=cor, leading=leading, alignment=align)
+    p = Paragraph(texto, st)
+    p.wrapOn(c, larg, 999)
+    p.drawOn(c, x, y - p.height)
+    return y - p.height
+
+def wrapB(c, texto, x, y, larg, size=11, cor=TEXTO_ESCURO, leading=15, align=TA_JUSTIFY):
+    """wrap com fonte bold"""
+    st = ParagraphStyle("sb", fontName=FONT_B, fontSize=size,
                         textColor=cor, leading=leading, alignment=align)
     p = Paragraph(texto, st)
     p.wrapOn(c, larg, 999)
@@ -172,24 +168,18 @@ def class_imc(imc):
     if v < 40:   return "Obesidade II"
     return "Obesidade III"
 
-# FIX: cor baseada no IMC
 def cor_imc(imc):
     v = to_float(imc)
     if v is None: return CINZA_TEXTO
-    if v < 18.5: return AZUL          # abaixo do peso → azul
-    if v < 25:   return VERDE_ESCURO  # normal → verde
-    if v < 30:   return AMARELO       # sobrepeso → amarelo
-    if v < 35:   return LARANJA       # obesidade I → laranja
-    return VERMELHO                    # obesidade II/III → vermelho
+    if v < 18.5: return AZUL
+    if v < 25:   return VERDE_ESCURO
+    if v < 30:   return AMARELO
+    if v < 35:   return LARANJA
+    return VERMELHO
 
-# FIX: cor baseada no status OMS
 def cor_oms(status):
-    return {
-        "excelente":    VERDE_ESCURO,
-        "adequado":     VERDE_LIMA,
-        "parcial":      LARANJA,
-        "insuficiente": VERMELHO,
-    }.get(status, VERDE_MEDIO)
+    return {"excelente": VERDE_ESCURO, "adequado": VERDE_LIMA,
+            "parcial": LARANJA, "insuficiente": VERMELHO}.get(status, VERDE_MEDIO)
 
 def obj_texto(o):
     m = {"perder_peso":"Perda de peso","ganhar_massa":"Ganho de massa",
@@ -203,7 +193,7 @@ def safe(val, sufixo=""):
     return f"{val}{sufixo}"
 
 def data_hoje():
-    meses = ["janeiro","fevereiro","marco","abril","maio","junho",
+    meses = ["janeiro","fevereiro","março","abril","maio","junho",
              "julho","agosto","setembro","outubro","novembro","dezembro"]
     d = datetime.now()
     return f"{d.day} de {meses[d.month-1]} de {d.year}"
@@ -224,17 +214,16 @@ def avaliar_oms(exercicio, tempo_treino, cardio, tempo_cardio):
     elif "60" in ts: mt=60
     elif "mais de 60" in ts: mt=75
     mc = 0
-    if "não" not in cs and cs not in ["","none","não informado"]:
+    if "não" not in cs and cs not in ["","none","não informado","nao"]:
         if "menos de 20" in ct: mc=30
         elif "20" in ct: mc=40
         elif "30" in ct: mc=60
         elif "45" in ct: mc=90
         elif "60" in ct: mc=120
     total = freq*mt + mc
-    if total == 0:    st="insuficiente"
-    elif total < 75:  st="insuficiente"
+    if total < 75:   st="insuficiente"
     elif total < 150: st="parcial"
-    elif total<=300:  st="adequado"
+    elif total <= 300: st="adequado"
     else:             st="excelente"
     return total, st
 
@@ -283,100 +272,78 @@ def meta_personalizada(dados):
         return {"tipo":"qualidade","freq_atual":freq,"freq_meta":min(freq+2,5),
                 "estresse_atual":int(estresse),"estresse_meta":max(int(estresse)-2,2)}
 
-# ── PÁGINA 1 — CAPA (escura) ──────────────────────────────────────────────────
+# ── PÁGINA 1 — CAPA ───────────────────────────────────────────────────────────
 def pag_capa(c, d):
     draw_bg_dark(c)
-    nome = d.get("nome") or "Aluno"
-    obj  = obj_texto(d.get("objetivo",""))
+    nome    = d.get("nome") or "Aluno"
+    obj     = obj_texto(d.get("objetivo",""))
     imc_val = d.get("imc") or calc_imc(d.get("peso"),d.get("altura"))
-    meta = meta_personalizada(d)
+    meta    = meta_personalizada(d)
 
-    c.setFillColor(VERDE_LIMA)
-    c.rect(0, H-4*mm, W, 4*mm, fill=1, stroke=0)
+    c.setFillColor(VERDE_LIMA); c.rect(0, H-4*mm, W, 4*mm, fill=1, stroke=0)
 
-    base = BASE_DIR
-    logo_path = os.path.join(base, "logo_sem_fundo.png")
+    logo_path = os.path.join(BASE_DIR, "logo_sem_fundo.png")
     if os.path.exists(logo_path):
-        lw = 70*mm; lh = 70*mm
-        c.drawImage(logo_path, W/2 - lw/2, H-78*mm,
-                    width=lw, height=lh, preserveAspectRatio=True, mask='auto')
+        lw=70*mm; lh=70*mm
+        c.drawImage(logo_path, W/2-lw/2, H-78*mm, width=lw, height=lh,
+                    preserveAspectRatio=True, mask='auto')
 
-    c.setFillColor(CARD_MEDIO_E)
-    c.rect(0, H-82*mm, W, 3*mm, fill=1, stroke=0)
+    c.setFillColor(CARD_MEDIO_E); c.rect(0, H-82*mm, W, 3*mm, fill=1, stroke=0)
 
-    c.setFillColor(VERDE_CLARO)
-    c.setFont(FONT_B, 14)
+    c.setFillColor(VERDE_CLARO); c.setFont(FONT_B, 15)
     c.drawString(20*mm, H-95*mm, "CRIADO EXCLUSIVAMENTE PARA")
-    c.setFillColor(BRANCO)
-    c.setFont(FONT_B, 44)
+    c.setFillColor(BRANCO); c.setFont(FONT_B, 44)
     c.drawString(20*mm, H-126*mm, nome)
 
-    c.setFillColor(VERDE_LIMA)
-    c.setFont(FONT_B, 19)
+    c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 20)
     if meta.get("tipo") == "emagrecimento":
-        c.drawString(20*mm, H-136*mm, f"Meta: Perder {meta['diff']} kg")
+        c.drawString(20*mm, H-137*mm, f"Meta: Perder {meta['diff']} kg")
     elif meta.get("tipo") == "massa":
-        c.drawString(20*mm, H-136*mm, f"Meta: Ganhar massa muscular")
+        c.drawString(20*mm, H-137*mm, "Meta: Ganhar massa muscular")
     else:
-        c.drawString(20*mm, H-136*mm, f"Meta: {obj}")
+        c.drawString(20*mm, H-137*mm, f"Meta: {obj}")
 
-    c.setFont(FONT_N, 11)
+    c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 12)
     c.drawString(20*mm, H-152*mm, f"Baseado nas suas respostas  •  {data_hoje()}")
 
-    c.setStrokeColor(CARD_MEDIO_E)
-    c.setLineWidth(1)
-    c.line(20*mm, H-155*mm, W-20*mm, H-155*mm)
+    c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(1)
+    c.line(20*mm, H-156*mm, W-20*mm, H-156*mm)
 
     if meta.get("tipo") == "emagrecimento":
-        cols = [
-            (str(int(meta["peso_atual"])), "kg", "HOJE"),
-            (str(int(meta["peso_obj"])),   "kg", "META"),
-            (str(meta["meses"]),           "meses" if meta["meses"]>1 else "mes", "ESTIMATIVA"),
-        ]
+        cols = [(str(int(meta["peso_atual"])), "kg", "HOJE"),
+                (str(int(meta["peso_obj"])), "kg", "META"),
+                (str(meta["meses"]), "meses" if meta["meses"]>1 else "mês", "ESTIMATIVA")]
     elif meta.get("tipo") == "massa":
-        cols = [
-            (f"{meta['g3min']}-{meta['g3max']}", "kg", "3 MESES"),
-            (f"{meta['g6min']}-{meta['g6max']}", "kg", "6 MESES"),
-            (safe(d.get("compro")), "/10", "COMPROMISSO"),
-        ]
+        cols = [(f"{meta['g3min']}-{meta['g3max']}", "kg", "3 MESES"),
+                (f"{meta['g6min']}-{meta['g6max']}", "kg", "6 MESES"),
+                (safe(d.get("compro")), "/10", "COMPROMISSO")]
     else:
-        cols = [
-            (safe(d.get("peso"), ""), "kg", "PESO ATUAL"),
-            (str(imc_val or "–"), "",  "IMC"),
-            (safe(d.get("compro")), "/10", "COMPROMISSO"),
-        ]
+        cols = [(safe(d.get("peso"),""), "kg", "PESO ATUAL"),
+                (str(imc_val or "–"), "", "IMC"),
+                (safe(d.get("compro")), "/10", "COMPROMISSO")]
 
-    col_w = (W - 40*mm) / 3
-    y_num = H - 167*mm
-    for i, (num, unid, label) in enumerate(cols):
-        cx = 20*mm + i * col_w
+    col_w = (W-40*mm)/3; y_num = H-168*mm
+    for i,(num,unid,label) in enumerate(cols):
+        cx = 20*mm + i*col_w
         if i > 0:
-            c.setStrokeColor(CARD_MEDIO_E)
-            c.setLineWidth(1)
-            c.line(cx, y_num+5*mm, cx, y_num-35*mm)
-        c.setFillColor(BRANCO)
-        c.setFont(FONT_B, 38)
-        c.drawCentredString(cx + col_w/2, y_num-16*mm, num)
-        c.setFillColor(VERDE_CLARO)
-        c.setFont(FONT_N, 11)
-        c.drawCentredString(cx + col_w/2, y_num-28*mm, unid)
-        c.setFillColor(VERDE_CLARO)
-        c.setFont(FONT_B, 9)
-        c.drawCentredString(cx + col_w/2, y_num-38*mm, label)
+            c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(1)
+            c.line(cx, y_num+5*mm, cx, y_num-38*mm)
+        c.setFillColor(BRANCO); c.setFont(FONT_B, 40)
+        c.drawCentredString(cx+col_w/2, y_num-18*mm, num)
+        c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 12)
+        c.drawCentredString(cx+col_w/2, y_num-30*mm, unid)
+        c.setFillColor(VERDE_CLARO); c.setFont(FONT_B, 10)
+        c.drawCentredString(cx+col_w/2, y_num-40*mm, label)
 
-    c.setStrokeColor(CARD_MEDIO_E)
-    c.setLineWidth(1)
-    c.line(20*mm, H-210*mm, W-20*mm, H-210*mm)
-
-    c.setFillColor(CINZA_TEXTO)
-    c.setFont(FONT_N, 8)
-    c.drawCentredString(W/2, H-218*mm,
-        "Este diagnostico e baseado nas suas respostas e nao substitui avaliacao medica.")
-
+    c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(1)
+    c.line(20*mm, H-213*mm, W-20*mm, H-213*mm)
+    c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 9)
+    c.drawCentredString(W/2, H-221*mm,
+        "Este diagnóstico é baseado nas suas respostas e não substitui avaliação médica.")
     rodape(c, 1, dark=True)
     c.showPage()
 
-# ── PÁGINA 2 — DADOS BIOMÉTRICOS ─────────────────────────────────────────────
+# ── PÁGINA 2 — DIAGNÓSTICO ────────────────────────────────────────────────────
 def pag_bio(c, d):
     draw_bg_light(c)
     draw_header_light(c, "barras", "SEÇÃO 1 — Seu Diagnóstico",
@@ -385,168 +352,168 @@ def pag_bio(c, d):
     imc_val = d.get("imc") or calc_imc(d.get("peso"),d.get("altura"))
     imc_f   = to_float(imc_val)
     COR_IMC = cor_imc(imc_f)
+    y_start = HEADER_BOTTOM() - 6*mm
 
-    # FIX: começar cards logo abaixo do header (38mm) com margem de 5mm
-    y_start = HEADER_BOTTOM() - 5*mm
-
-    # 4 cards superiores
-    campos = [
-        ("balanca", safe(d.get("peso"),"kg"), "PESO ATUAL"),
-        ("regua", safe(d.get("altura"),"cm"), "ALTURA"),
-        ("bolo", safe(d.get("idade")," anos"), "IDADE"),
-        ("alvo", safe(d.get("peso_obj"),"kg"), "PESO OBJETIVO"),
-    ]
+    # 4 cards bio
+    campos = [("balanca", safe(d.get("peso"),"kg"), "PESO ATUAL"),
+              ("regua",   safe(d.get("altura"),"cm"), "ALTURA"),
+              ("bolo",    safe(d.get("idade")," anos"), "IDADE"),
+              ("alvo",    safe(d.get("peso_obj"),"kg"), "PESO OBJETIVO")]
     cw = (W-44*mm)/2
     for i,(emoji,val,lbl) in enumerate(campos):
         col=i%2; row=i//2
-        cx=22*mm+col*cw; cy=y_start - row*30*mm
-        draw_card(c, cx, cy-26*mm, cw-4*mm, 27*mm, fill=CARD_CLARO)
+        cx=22*mm+col*cw; cy=y_start-row*32*mm
+        draw_card(c, cx, cy-28*mm, cw-4*mm, 29*mm, fill=CARD_CLARO)
         c.setFillColor(VERDE_LIMA)
         c.roundRect(cx, cy, cw-4*mm, 3*mm, 2, fill=1, stroke=0)
         draw_emoji(c, emoji, cx+3*mm, cy-4*mm, size=6)
-        c.setFillColor(VERDE_ESCURO)
-        c.setFont(FONT_B, 14)
-        c.drawString(cx+12*mm, cy-10*mm, str(val))
-        c.setFillColor(CINZA_TEXTO)
-        c.setFont(FONT_N, 10)
-        c.drawString(cx+3*mm, cy-21*mm, lbl)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 15)
+        c.drawString(cx+13*mm, cy-11*mm, str(val))
+        c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 11)
+        c.drawString(cx+3*mm, cy-23*mm, lbl)
 
-    # ── BARRA IMC ──
-    # FIX: posicionado logo abaixo dos 4 cards (2 linhas × 30mm + gap)
-    y_imc = y_start - 60*mm - 8*mm
-    draw_card(c, 20*mm, y_imc-52*mm, W-40*mm, 56*mm, fill=CARD_CLARO)
-    c.setFillColor(VERDE_ESCURO)
-    c.setFont(FONT_B, 13)
+    # Barra IMC
+    y_imc = y_start - 65*mm - 8*mm
+    draw_card(c, 20*mm, y_imc-54*mm, W-40*mm, 58*mm, fill=CARD_CLARO)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
     c.drawString(24*mm, y_imc-7*mm, "ÍNDICE DE MASSA CORPORAL (IMC)")
 
-    segs = [
-        (4.5, colors.HexColor("#5B9BD5"), "BAIXO"),
-        (6.5, colors.HexColor("#70AD47"), "NORMAL"),
-        (5.0, colors.HexColor("#FFC000"), "SOBREPESO"),
-        (5.0, colors.HexColor("#FF7C00"), "OBESO"),
-        (4.0, colors.HexColor("#FF0000"), "OB.III"),
-    ]
+    segs = [(4.5, colors.HexColor("#5B9BD5"), "BAIXO"),
+            (6.5, colors.HexColor("#70AD47"), "NORMAL"),
+            (5.0, colors.HexColor("#FFC000"), "SOBREPESO"),
+            (5.0, colors.HexColor("#FF7C00"), "OBESO"),
+            (4.0, colors.HexColor("#FF0000"), "OB.III")]
     total_s = sum(s[0] for s in segs)
-    bw = W-50*mm; bh = 10*mm; y_bar = y_imc-24*mm; xp = 25*mm
+    bw=W-50*mm; bh=11*mm; y_bar=y_imc-24*mm; xp=25*mm
     for vs,cs,ls in segs:
-        sw = bw*vs/total_s
-        c.setFillColor(cs)
-        c.rect(xp, y_bar, sw, bh, fill=1, stroke=0)
+        sw=bw*vs/total_s
+        c.setFillColor(cs); c.rect(xp, y_bar, sw, bh, fill=1, stroke=0)
         if sw > 14*mm:
-            c.setFillColor(BRANCO)
-            c.setFont(FONT_B, 7)
+            c.setFillColor(BRANCO); c.setFont(FONT_B, 8)
             c.drawCentredString(xp+sw/2, y_bar+3*mm, ls)
         xp += sw
     c.setStrokeColor(VERDE_ESCURO); c.setLineWidth(1)
     c.roundRect(25*mm, y_bar, bw, bh, 3, fill=0, stroke=1)
 
-    # FIX: marcador IMC abaixo da barra, triângulo apontando para cima
+    # Cursor IMC — abaixo da barra
     if imc_f:
         ratio = (min(max(imc_f,15.0),42.0)-15.0)/27.0
         mx = 25*mm + bw*ratio
-        # triângulo apontando para cima, abaixo da barra
         path = c.beginPath()
-        path.moveTo(mx, y_bar - 2*mm)
-        path.lineTo(mx - 3*mm, y_bar - 7*mm)
-        path.lineTo(mx + 3*mm, y_bar - 7*mm)
+        path.moveTo(mx, y_bar-2*mm)
+        path.lineTo(mx-3.5*mm, y_bar-8*mm)
+        path.lineTo(mx+3.5*mm, y_bar-8*mm)
         path.close()
         c.setFillColor(COR_IMC); c.drawPath(path, fill=1, stroke=0)
-        c.setFillColor(COR_IMC); c.setFont(FONT_B, 9)
-        c.drawCentredString(mx, y_bar - 10*mm, f"Você: {imc_f}")
+        c.setFillColor(COR_IMC); c.setFont(FONT_B, 10)
+        c.drawCentredString(mx, y_bar-12*mm, f"Você: {imc_f}")
 
-    # classificação abaixo da barra com cor dinâmica
-    c.setFillColor(COR_IMC); c.setFont(FONT_B, 13)
-    c.drawString(24*mm, y_imc-41*mm, class_imc(imc_val))
-    c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 10)
-    c.drawString(24*mm, y_imc-49*mm, "Ideal: 18,5 a 24,9")
+    # Classificação com cor dinâmica + contexto motivacional
+    c.setFillColor(COR_IMC); c.setFont(FONT_B, 14)
+    c.drawString(24*mm, y_imc-42*mm, class_imc(imc_val))
+    c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 11)
+    c.drawString(24*mm, y_imc-51*mm, "Ideal: 18,5 a 24,9")
+    # Frase de contexto quando fora do ideal
+    if imc_f and imc_f >= 25:
+        c.setFillColor(COR_IMC); c.setFont(FONT_N, 9)
+        c.drawRightString(W-24*mm, y_imc-51*mm, "Com o protocolo certo, isso muda.")
 
-    # ── CARD META ──
-    y_meta = y_imc - 62*mm
+    # Card meta
+    y_meta = y_imc - 64*mm
     meta = meta_personalizada(d)
     tipo = meta.get("tipo","")
 
     if tipo == "emagrecimento":
-        draw_card(c, 20*mm, y_meta-55*mm, W-40*mm, 58*mm, fill=VERDE_ESCURO)
-        draw_emoji(c, "musculo", W/2 - 42*mm, y_meta-1*mm, size=5)
-        c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 9)
-        c.drawString(W/2 - 34*mm, y_meta-6*mm, "SUA META DE EMAGRECIMENTO")
-        cdata = [
-            (str(int(meta["peso_atual"])), "kg", "HOJE"),
-            (str(int(meta["peso_obj"])), "kg", "META"),
-            (f"{meta['meses']}", "meses", "ESTIMATIVA"),
-        ]
-        cw3 = (W-40*mm)/3
+        # card maior para caber o ritmo dentro
+        draw_card(c, 20*mm, y_meta-68*mm, W-40*mm, 71*mm, fill=VERDE_ESCURO)
+        draw_emoji(c, "musculo", W/2-44*mm, y_meta-1*mm, size=5)
+        c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 10)
+        c.drawString(W/2-36*mm, y_meta-6*mm, "SUA META DE EMAGRECIMENTO")
+        # Barra de progresso peso
+        bx_p=24*mm; by_p=y_meta-20*mm; bw_p=W-48*mm; bh_p=8*mm
+        c.setFillColor(CARD_MEDIO_E)
+        c.roundRect(bx_p, by_p, bw_p, bh_p, 4, fill=1, stroke=0)
+        pct_p = max(0, min(1, (meta["peso_atual"]-meta["peso_obj"]) /
+                              max(meta["peso_atual"]-meta["peso_obj"]+1, 1)))
+        c.setFillColor(VERDE_LIMA)
+        c.roundRect(bx_p, by_p, bw_p*(1-pct_p)*0.05+2*mm, bh_p, 4, fill=1, stroke=0)
+        c.setFillColor(BRANCO); c.setFont(FONT_B, 7)
+        c.drawString(bx_p+3*mm, by_p+2*mm, f"{int(meta['peso_atual'])} kg hoje")
+        c.drawRightString(bx_p+bw_p-2*mm, by_p+2*mm, f"Meta: {int(meta['peso_obj'])} kg")
+        cdata = [(str(int(meta["peso_atual"])), "kg", "HOJE"),
+                 (str(int(meta["peso_obj"])), "kg", "META"),
+                 (f"{meta['meses']}", "meses", "ESTIMATIVA")]
+        cw3=(W-40*mm)/3
         for i,(v,u,l) in enumerate(cdata):
-            cx3 = 20*mm + i*cw3
+            cx3=20*mm+i*cw3
             if i>0:
                 c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(0.5)
-                c.line(cx3, y_meta-15*mm, cx3, y_meta-50*mm)
+                c.line(cx3, y_meta-26*mm, cx3, y_meta-58*mm)
             c.setFillColor(BRANCO); c.setFont(FONT_B, 26)
-            c.drawCentredString(cx3+cw3/2, y_meta-30*mm, v)
-            c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
-            c.drawCentredString(cx3+cw3/2, y_meta-39*mm, u)
-            c.setFillColor(colors.HexColor("#888888")); c.setFont(FONT_B, 7)
-            c.drawCentredString(cx3+cw3/2, y_meta-48*mm, l)
-        c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 8)
-        c.drawCentredString(W/2, y_meta-54*mm,
-            f"Ritmo personalizado: {meta['taxa']} kg/semana baseado no seu IMC ({meta['imc']})")
+            c.drawCentredString(cx3+cw3/2, y_meta-40*mm, v)
+            c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 10)
+            c.drawCentredString(cx3+cw3/2, y_meta-50*mm, u)
+            c.setFillColor(colors.HexColor("#888888")); c.setFont(FONT_B, 8)
+            c.drawCentredString(cx3+cw3/2, y_meta-59*mm, l)
+        # linha separadora antes do ritmo
+        c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(0.5)
+        c.line(24*mm, y_meta-62*mm, W-24*mm, y_meta-62*mm)
+        c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
+        c.drawCentredString(W/2, y_meta-66*mm,
+            f"Ritmo personalizado: {meta['taxa']} kg/semana  |  IMC atual: {meta['imc']}")
 
     elif tipo == "massa":
         draw_card(c, 20*mm, y_meta-55*mm, W-40*mm, 58*mm, fill=VERDE_ESCURO)
-        draw_emoji(c, "musculo", W/2 - 40*mm, y_meta-1*mm, size=5)
-        c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 9)
-        c.drawString(W/2 - 32*mm, y_meta-6*mm, "SUA META DE GANHO MUSCULAR")
-        cdata = [
-            (f"+{meta['g3min']}-{meta['g3max']}", "kg", "3 MESES"),
-            (f"+{meta['g6min']}-{meta['g6max']}", "kg", "6 MESES"),
-            (safe(d.get("compro")), "/10", "COMPROMISSO"),
-        ]
-        cw3 = (W-40*mm)/3
+        draw_emoji(c, "musculo", W/2-42*mm, y_meta-1*mm, size=5)
+        c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 10)
+        c.drawString(W/2-34*mm, y_meta-6*mm, "SUA META DE GANHO MUSCULAR")
+        cdata = [(f"+{meta['g3min']}-{meta['g3max']}", "kg", "3 MESES"),
+                 (f"+{meta['g6min']}-{meta['g6max']}", "kg", "6 MESES"),
+                 (safe(d.get("compro")), "/10", "COMPROMISSO")]
+        cw3=(W-40*mm)/3
         for i,(v,u,l) in enumerate(cdata):
-            cx3 = 20*mm+i*cw3
+            cx3=20*mm+i*cw3
+            if i>0:
+                c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(0.5)
+                c.line(cx3, y_meta-15*mm, cx3, y_meta-50*mm)
+            c.setFillColor(BRANCO); c.setFont(FONT_B, 20)
+            c.drawCentredString(cx3+cw3/2, y_meta-32*mm, v)
+            c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 10)
+            c.drawCentredString(cx3+cw3/2, y_meta-43*mm, u)
+            c.setFillColor(colors.HexColor("#888888")); c.setFont(FONT_B, 8)
+            c.drawCentredString(cx3+cw3/2, y_meta-52*mm, l)
+
+    else:
+        draw_card(c, 20*mm, y_meta-52*mm, W-40*mm, 55*mm, fill=VERDE_ESCURO)
+        c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 10)
+        c.drawCentredString(W/2, y_meta-6*mm, "SUAS METAS EM 60 DIAS")
+        cdata = [(f"{meta.get('freq_atual',0)}x→{meta.get('freq_meta',0)}x", "/sem", "TREINOS"),
+                 (f"{meta.get('estresse_atual',5)}→{meta.get('estresse_meta',3)}", "/10", "ESTRESSE"),
+                 (safe(d.get("compro")), "/10", "COMPROMISSO")]
+        cw3=(W-40*mm)/3
+        for i,(v,u,l) in enumerate(cdata):
+            cx3=20*mm+i*cw3
             if i>0:
                 c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(0.5)
                 c.line(cx3, y_meta-15*mm, cx3, y_meta-50*mm)
             c.setFillColor(BRANCO); c.setFont(FONT_B, 18)
             c.drawCentredString(cx3+cw3/2, y_meta-32*mm, v)
-            c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
-            c.drawCentredString(cx3+cw3/2, y_meta-42*mm, u)
-            c.setFillColor(colors.HexColor("#888888")); c.setFont(FONT_B, 7)
-            c.drawCentredString(cx3+cw3/2, y_meta-50*mm, l)
+            c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 10)
+            c.drawCentredString(cx3+cw3/2, y_meta-43*mm, u)
+            c.setFillColor(colors.HexColor("#888888")); c.setFont(FONT_B, 8)
+            c.drawCentredString(cx3+cw3/2, y_meta-51*mm, l)
 
-    else:
-        draw_card(c, 20*mm, y_meta-50*mm, W-40*mm, 53*mm, fill=VERDE_ESCURO)
-        c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 9)
-        c.drawCentredString(W/2, y_meta-6*mm, "SUAS METAS EM 60 DIAS")
-        cdata = [
-            (f"{meta.get('freq_atual',0)}x→{meta.get('freq_meta',0)}x", "/sem", "TREINOS"),
-            (f"{meta.get('estresse_atual',5)}→{meta.get('estresse_meta',3)}", "/10", "ESTRESSE"),
-            (safe(d.get("compro")), "/10", "COMPROMISSO"),
-        ]
-        cw3 = (W-40*mm)/3
-        for i,(v,u,l) in enumerate(cdata):
-            cx3 = 20*mm+i*cw3
-            if i>0:
-                c.setStrokeColor(CARD_MEDIO_E); c.setLineWidth(0.5)
-                c.line(cx3, y_meta-15*mm, cx3, y_meta-48*mm)
-            c.setFillColor(BRANCO); c.setFont(FONT_B, 16)
-            c.drawCentredString(cx3+cw3/2, y_meta-30*mm, v)
-            c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 8)
-            c.drawCentredString(cx3+cw3/2, y_meta-40*mm, u)
-            c.setFillColor(colors.HexColor("#888888")); c.setFont(FONT_B, 7)
-            c.drawCentredString(cx3+cw3/2, y_meta-48*mm, l)
-
-    # frase motivacional com emoji
+    # Frase motivacional
     nome = d.get("nome") or "você"
-    y_frase = y_meta - 60*mm
-    draw_card(c, 20*mm, y_frase-20*mm, W-40*mm, 22*mm, fill=CARD_CLARO)
-    frase_emoji = "sorriso" if tipo == "emagrecimento" else ("musculo" if tipo == "massa" else "brilho")
-    if tipo == "emagrecimento":
+    y_frase = y_meta - 65*mm
+    draw_card(c, 20*mm, y_frase-22*mm, W-40*mm, 24*mm, fill=CARD_CLARO)
+    frase_emoji = "sorriso" if tipo=="emagrecimento" else ("musculo" if tipo=="massa" else "brilho")
+    if tipo=="emagrecimento":
         frase = f"{nome}, você tomou a decisão certa ao buscar um diagnóstico personalizado. Agora é só seguir o caminho!"
-    elif tipo == "massa":
-        frase = f"{nome}, com dedicacao e o protocolo certo você vai transformar seu corpo. Vamos juntos!"
+    elif tipo=="massa":
+        frase = f"{nome}, com dedicação e o protocolo certo você vai transformar seu corpo. Vamos juntos!"
     else:
-        frase = f"{nome}, qualidade de vida comeca com pequenas mudancas consistentes. Você ja deu o primeiro passo!"
+        frase = f"{nome}, qualidade de vida começa com pequenas mudanças consistentes. Você já deu o primeiro passo!"
     draw_emoji(c, frase_emoji, 24*mm, y_frase-3*mm, size=5)
     wrap(c, frase, 31*mm, y_frase-4*mm, W-55*mm, size=11, cor=VERDE_ESCURO, leading=14, align=TA_LEFT)
 
@@ -558,37 +525,82 @@ def pag_meta(c, d):
     draw_bg_light(c)
     draw_header_light(c, "lista", "SEÇÃO 2 — Meta e Hábitos",
                       "Seu estilo de vida e rotina atual")
+
+    # Estresse alto → alerta visual diferenciado
+    estresse_val = to_float(d.get("estresse"))
+
     itens = [
-        ("alvo", "Objetivo principal",  obj_texto(d.get("objetivo",""))),
-        ("salada", "Alimentação",         safe(d.get("alimentacao"))),
-        ("correr", "Exercício atual",     safe(d.get("exercicio"))),
+        ("alvo",    "Objetivo principal",  obj_texto(d.get("objetivo",""))),
+        ("salada",  "Alimentação",         safe(d.get("alimentacao"))),
+        ("correr",  "Exercício atual",     safe(d.get("exercicio"))),
         ("relogio", "Tempo de treino",     safe(d.get("tempo_treino"))),
-        ("bike", "Cardio",              safe(d.get("cardio"))),
-        ("alarme", "Tempo de cardio",     safe(d.get("tempo_cardio"))),
-        ("raiva", "Nível de estresse",   safe(d.get("estresse"))),
+        ("bike",    "Cardio",              safe(d.get("cardio"))),
+        ("alarme",  "Tempo de cardio",     safe(d.get("tempo_cardio"))),
+        ("raiva",   "Nível de estresse",   safe(d.get("estresse"))),
         ("musculo", "Comprometimento",     f"{safe(d.get('compro'))}/10"),
-        ("aviso", "Limitações",          safe(d.get("limitacao"))),
+        ("aviso",   "Limitações",          safe(d.get("limitacao"))),
     ]
-    # FIX: y inicial logo abaixo do header
     y = HEADER_BOTTOM() - 8*mm
     for emoji, lbl, val in itens:
-        # FIX: altura do card aumentada para 20mm, com wrap no valor
-        card_h = 20*mm
-        draw_card(c, 20*mm, y-card_h, W-40*mm, card_h, fill=CARD_CLARO)
-        c.setFillColor(VERDE_LIMA)
+        card_h = 18*mm  # reduzido de 22 para 18
+        # Estresse alto → card laranja/vermelho
+        eh_estresse = (lbl == "Nível de estresse")
+        if eh_estresse and estresse_val and estresse_val >= 8:
+            fill_cor = colors.HexColor("#FFF3E0")
+            borda_cor = VERMELHO if estresse_val >= 9 else LARANJA
+        elif eh_estresse and estresse_val and estresse_val >= 6:
+            fill_cor = colors.HexColor("#FFFDE7")
+            borda_cor = AMARELO
+        else:
+            fill_cor = CARD_CLARO
+            borda_cor = VERDE_LIMA
+
+        draw_card(c, 20*mm, y-card_h, W-40*mm, card_h, fill=fill_cor)
+        c.setFillColor(borda_cor)
         c.roundRect(20*mm, y-card_h, 5*mm, card_h, 2, fill=1, stroke=0)
-        c.setFillColor(VERDE_ESCURO)
-        draw_emoji(c, emoji, 28*mm, y-2*mm, size=6)
-        c.setFont(FONT_B, 10)
-        c.drawString(36*mm, y-8*mm, lbl.upper()+":")
-        # FIX: wrap no valor para não sair da linha
-        wrap(c, str(val)[:80], 105*mm, y-4*mm, W-130*mm,
-             size=10, cor=TEXTO_ESCURO, leading=12, align=TA_LEFT)
-        y -= card_h + 3*mm
+        draw_emoji(c, emoji, 28*mm, y-2*mm, size=5)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
+        c.drawString(36*mm, y-7*mm, lbl.upper()+":")
+        cor_val = (VERMELHO if estresse_val and estresse_val>=9 else
+                   LARANJA if estresse_val and estresse_val>=6 else TEXTO_ESCURO) if eh_estresse else TEXTO_ESCURO
+        wrap(c, str(val)[:80], 100*mm, y-4*mm, W-125*mm,
+             size=10, cor=cor_val, leading=12, align=TA_LEFT)
+        if eh_estresse and estresse_val and estresse_val >= 8:
+            c.setFillColor(borda_cor); c.setFont(FONT_B, 7)
+            c.drawRightString(W-24*mm, y-12*mm, "⚠ Alto nível de estresse impacta resultados")
+        y -= card_h + 2*mm  # gap reduzido de 3 para 2
+
+    # Frase de comprometimento personalizada
+    compro_val = to_float(d.get("compro")) or 0
+    nome = d.get("nome") or "você"
+    if compro_val >= 9:
+        frase_compro = f"{nome}, seu comprometimento de {int(compro_val)}/10 é impressionante! Com essa determinação, os resultados são inevitáveis. O protocolo vai te levar até o fim."
+        emoji_compro = "trofeu"
+        cor_compro   = VERDE_ESCURO
+    elif compro_val >= 7:
+        frase_compro = f"{nome}, com {int(compro_val)}/10 de comprometimento você já está à frente da maioria. Continue firme e o protocolo vai te surpreender."
+        emoji_compro = "musculo"
+        cor_compro   = VERDE_ESCURO
+    elif compro_val >= 5:
+        frase_compro = f"{nome}, comprometimento {int(compro_val)}/10 é um bom começo. O protocolo foi feito para te ajudar a criar consistência e aumentar esse número ao longo do tempo."
+        emoji_compro = "brilho"
+        cor_compro   = VERDE_MEDIO
+    else:
+        frase_compro = f"{nome}, sabemos que começar é o mais difícil. O protocolo é desenhado para encaixar na sua rotina e te motivar semana a semana."
+        emoji_compro = "sorriso"
+        cor_compro   = VERDE_MEDIO
+
+    draw_card(c, 20*mm, y-22*mm, W-40*mm, 24*mm, fill=CARD_CLARO)
+    c.setFillColor(cor_compro)
+    c.roundRect(20*mm, y-22*mm, 5*mm, 24*mm, 2, fill=1, stroke=0)
+    draw_emoji(c, emoji_compro, 28*mm, y-3*mm, size=6)
+    wrap(c, frase_compro, 37*mm, y-5*mm, W-62*mm,
+         size=10, cor=cor_compro, leading=13, align=TA_LEFT)
+
     rodape(c, 3)
     c.showPage()
 
-# ── PÁGINA 4 — ANALISE VISUAL ─────────────────────────────────────────────────
+# ── PÁGINA 4 — LEITURA DO PERFIL ─────────────────────────────────────────────
 def pag_perfil(c, d):
     draw_bg_light(c)
     draw_header_light(c, "lupa", "SEÇÃO 3 — Leitura do seu perfil",
@@ -605,82 +617,93 @@ def pag_perfil(c, d):
     estresse = safe(d.get("estresse"))
     COR_IMC  = cor_imc(to_float(imc_val))
 
-    # FIX: título logo abaixo do header
-    y_titulo = HEADER_BOTTOM() - 8*mm
+    y_titulo = HEADER_BOTTOM() - 9*mm
     c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
     c.drawCentredString(W/2, y_titulo, f"Aqui está o que identificamos sobre {nome}:")
 
-    # 4 cards visuais
-    card_w = (W-46*mm)/2; card_h = 40*mm
+    card_w=(W-46*mm)/2; card_h=30*mm
     cards = [
-        ("alvo", "FOCO INICIAL", obj, f"Compromisso: {int(comp_raw)}/10", VERDE_ESCURO),
-        ("barras", "PERFIL FÍSICO", class_imc(imc_val), f"IMC: {imc_val or '–'}", COR_IMC),
-        ("correr", "ROTINA ATUAL", exerc, f"Treino: {safe(d.get('tempo_treino'))}", VERDE_ESCURO),
-        ("salada", "ALIMENTACAO", alim, f"Estresse: {estresse}/10", VERDE_MEDIO),
+        ("alvo",    "FOCO INICIAL",   obj,                f"Compromisso: {int(comp_raw)}/10", VERDE_ESCURO),
+        ("barras",  "PERFIL FÍSICO",  class_imc(imc_val), f"IMC: {imc_val or '–'}",          COR_IMC),
+        ("correr",  "ROTINA ATUAL",   exerc,              f"Treino: {safe(d.get('tempo_treino'))}", VERDE_ESCURO),
+        ("salada",  "ALIMENTAÇÃO",    alim,               f"Estresse: {estresse}/10",         VERDE_MEDIO),
     ]
     y_c = y_titulo - 8*mm
     for i,(emoji,tit,val,det,cor) in enumerate(cards):
         col=i%2; row=i//2
-        cx=22*mm+col*(card_w+4*mm); cy=y_c-row*(card_h+5*mm)
+        cx=22*mm+col*(card_w+4*mm); cy=y_c-row*(card_h+3*mm)
         draw_card(c, cx, cy-card_h, card_w, card_h, fill=CARD_CLARO)
         c.setFillColor(cor)
         c.roundRect(cx, cy-6*mm, card_w, 6*mm, 2, fill=1, stroke=0)
-        # emoji + título na faixa colorida
-        draw_emoji(c, emoji, cx + card_w/2 - len(tit)*2.5 - 6*mm, cy - 0.5*mm, size=5)
+        draw_emoji(c, emoji, cx+card_w/2-len(tit)*2.2-5*mm, cy-0.5*mm, size=4)
         c.setFillColor(BRANCO); c.setFont(FONT_B, 9)
-        c.drawString(cx + card_w/2 - len(tit)*2.5 + 1*mm, cy-4*mm, tit)
-        c.setFillColor(TEXTO_ESCURO); c.setFont(FONT_B, 12)
-        c.drawCentredString(cx+card_w/2, cy-19*mm, str(val)[:28])
-        c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 10)
-        c.drawCentredString(cx+card_w/2, cy-29*mm, str(det)[:36])
+        c.drawString(cx+card_w/2-len(tit)*2.2+2*mm, cy-4*mm, tit)
+        c.setFillColor(TEXTO_ESCURO); c.setFont(FONT_B, 11)
+        c.drawCentredString(cx+card_w/2, cy-15*mm, str(val)[:28])
+        c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 9)
+        c.drawCentredString(cx+card_w/2, cy-23*mm, str(det)[:36])
 
-    # barra comprometimento
-    y_comp = y_c - 2*(card_h+5*mm) - 8*mm
-    draw_card(c, 20*mm, y_comp-22*mm, W-40*mm, 26*mm, fill=CARD_CLARO)
+    # Barra comprometimento
+    y_comp = y_c - 2*(card_h+3*mm) - 5*mm
+    draw_card(c, 20*mm, y_comp-22*mm, W-40*mm, 24*mm, fill=CARD_CLARO)
     draw_emoji(c, "musculo", 24*mm, y_comp-0.5*mm, size=5)
-    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
-    c.drawString(31*mm, y_comp-2*mm, "Nível de comprometimento:")
-    bw=W-80*mm; bx=24*mm; by=y_comp-16*mm
-    c.setFillColor(colors.HexColor("#DDDDDD"))
-    c.roundRect(bx, by, bw, 8*mm, 4, fill=1, stroke=0)
-    pct = min(comp_raw/10.0,1.0)
-    c.setFillColor(VERDE_LIMA if pct>=0.7 else colors.HexColor("#FFC000"))
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
+    c.drawString(31*mm, y_comp-3*mm, "Nível de comprometimento:")
+    bw=W-80*mm; bx=24*mm; by=y_comp-17*mm
+    c.setFillColor(CINZA_CLARO); c.roundRect(bx, by, bw, 8*mm, 4, fill=1, stroke=0)
+    pct=min(comp_raw/10.0,1.0)
+    c.setFillColor(VERDE_LIMA if pct>=0.7 else AMARELO)
     c.roundRect(bx, by, bw*pct, 8*mm, 4, fill=1, stroke=0)
     if pct>0.15:
-        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B,9)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
         c.drawString(bx+3*mm, by+2*mm, f"{int(comp_raw)}/10")
-    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B,9)
     label_c = "Excelente!" if pct>=0.8 else ("Ótimo!" if pct>=0.6 else "Vamos lá!")
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
     c.drawString(bx+bw+3*mm, by+2*mm, label_c)
 
-    # alertas
-    y_obs = y_comp - 30*mm
+    # Alertas
+    y_obs = y_comp - 28*mm
     obs = []
     if lim.lower() not in ["nenhuma","não","none","","não informado"]:
         obs.append(("aviso", "Limitação física", lim, LARANJA))
     if med.lower() not in ["nenhum","não","none","","não informado"]:
         obs.append(("remedio", "Medicamento em uso", med, AZUL))
-    for emoji_o, tit_o, val_o, cor_o in obs:
+    for emoji_o,tit_o,val_o,cor_o in obs:
         draw_card(c, 20*mm, y_obs-18*mm, W-40*mm, 20*mm, fill=CARD_CLARO)
-        c.setFillColor(cor_o)
-        c.roundRect(20*mm, y_obs-18*mm, 5*mm, 20*mm, 2, fill=1, stroke=0)
+        c.setFillColor(cor_o); c.roundRect(20*mm, y_obs-18*mm, 5*mm, 20*mm, 2, fill=1, stroke=0)
         draw_emoji(c, emoji_o, 28*mm, y_obs-2*mm, size=5)
-        c.setFillColor(cor_o); c.setFont(FONT_B,10)
-        c.drawString(36*mm, y_obs-6*mm, tit_o+":")
-        wrap(c, str(val_o), 90*mm, y_obs-3*mm, W-115*mm,
-             size=10, cor=TEXTO_ESCURO, leading=12, align=TA_LEFT)
+        c.setFillColor(cor_o); c.setFont(FONT_B, 10)
+        c.drawString(36*mm, y_obs-7*mm, tit_o+":")
+        wrap(c, str(val_o), 88*mm, y_obs-3*mm, W-112*mm, size=9, cor=TEXTO_ESCURO, leading=11, align=TA_LEFT)
         y_obs -= 24*mm
 
-    # nota final
-    draw_card(c, 20*mm, y_obs-18*mm, W-40*mm, 20*mm, fill=CARD_CLARO)
-    draw_emoji(c, "medico", 24*mm, y_obs-3*mm, size=5)
-    wrap(c, "Este diagnóstico não substitui consulta medica ou nutricional. Ele organiza os principais sinais do seu perfil para você entender por onde começar.",
-         31*mm, y_obs-4*mm, W-55*mm, size=9, cor=CINZA_TEXTO, leading=12, align=TA_LEFT)
+    # Nota médica compacta
+    draw_card(c, 20*mm, y_obs-15*mm, W-40*mm, 17*mm, fill=CARD_CLARO)
+    draw_emoji(c, "medico", 24*mm, y_obs-2*mm, size=4)
+    wrap(c, "Este diagnóstico não substitui consulta médica ou nutricional. Ele organiza os principais sinais do seu perfil para você entender por onde começar.",
+         31*mm, y_obs-3*mm, W-55*mm, size=9, cor=CINZA_TEXTO, leading=11, align=TA_LEFT)
+
+    # Frase consultoria + botão CTA
+    y_cta = y_obs - 20*mm
+    draw_card(c, 20*mm, y_cta-34*mm, W-40*mm, 36*mm, fill=VERDE_ESCURO)
+    if comp_raw >= 8:
+        frase_cta = "Você tem o perfil e o comprometimento certos. A consultoria transforma esse diagnóstico em um protocolo 100% personalizado — treinos, cardio, mobilidade e suporte direto."
+    else:
+        frase_cta = "A consultoria transforma esse diagnóstico em um plano de ação real: treinos montados do zero para o seu perfil, suporte direto e acompanhamento semana a semana."
+    wrap(c, frase_cta, 25*mm, y_cta-4*mm, W-50*mm,
+         size=9, cor=VERDE_CLARO, leading=12, align=TA_CENTER)
+    bw=90*mm; bh=13*mm; bx=W/2-bw/2; by=y_cta-34*mm+4*mm
+    c.setFillColor(VERDE_LIMA); c.roundRect(bx, by, bw, bh, 4, fill=1, stroke=0)
+    draw_emoji(c, "cadeado", bx+6*mm, by+bh-2*mm, size=5)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
+    c.drawString(bx+14*mm, by+3*mm, "Quero a consultoria →")
+    url_p7 = "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636"
+    c.linkURL(url_p7, (bx, by, bx+bw, by+bh), relative=0)
 
     rodape(c, 4)
     c.showPage()
 
-# ── PÁGINA 5 — LAUDO OMS ──────────────────────────────────────────────────────
+# ── PÁGINA 5 — LAUDO OMS ─────────────────────────────────────────────────────
 def pag_oms(c, d):
     draw_bg_light(c)
     draw_header_light(c, "correr", "SEÇÃO 4 — Laudo de Atividade Física",
@@ -688,144 +711,143 @@ def pag_oms(c, d):
 
     total, status = avaliar_oms(d.get("exercicio",""), d.get("tempo_treino",""),
                                 d.get("cardio",""), d.get("tempo_cardio",""))
-    # FIX: cor dinâmica baseada no status OMS
     cor_st = cor_oms(status)
-    label_st = {
-        "insuficiente": "NÍVEL INSUFICIENTE ",
-        "parcial":      "QUASE LA! ",
-        "adequado":     "DENTRO DA META OMS ",
-        "excelente":    "ACIMA DA META OMS ",
-    }.get(status,"")
-
-    # FIX: card OMS começa logo abaixo do header
-    y_card_top = HEADER_BOTTOM() - 5*mm
-    card_h = 58*mm
-    draw_card(c, 20*mm, y_card_top - card_h, W-40*mm, card_h, fill=cor_st)
-
-    faixa_cor = {
-        "insuficiente": colors.HexColor("#8B0000"),
-        "parcial":      colors.HexColor("#A05500"),
-        "adequado":     colors.HexColor("#3A8020"),
-        "excelente":    colors.HexColor("#1A4010"),
-    }.get(status, VERDE_ESCURO)
-
+    faixa_cor = {"insuficiente": colors.HexColor("#8B0000"),
+                 "parcial":      colors.HexColor("#A05500"),
+                 "adequado":     colors.HexColor("#3A8020"),
+                 "excelente":    colors.HexColor("#1A4010")}.get(status, VERDE_ESCURO)
     label_emoji = {"insuficiente":"aviso","parcial":"fogo","adequado":"ok","excelente":"trofeu"}.get(status,"ok")
     label_txt   = {"insuficiente":"NÍVEL INSUFICIENTE","parcial":"QUASE LÁ!",
                    "adequado":"DENTRO DA META OMS","excelente":"ACIMA DA META OMS"}.get(status,"")
 
+    y_card_top = HEADER_BOTTOM() - 5*mm
+    card_h = 60*mm
+    draw_card(c, 20*mm, y_card_top-card_h, W-40*mm, card_h, fill=cor_st)
     c.setFillColor(faixa_cor)
-    c.roundRect(20*mm, y_card_top - 12*mm, W-40*mm, 12*mm, 5, fill=1, stroke=0)
-    draw_emoji(c, label_emoji, W/2 - len(label_txt)*2.8 - 5*mm, y_card_top - 1*mm, size=5)
-    c.setFillColor(BRANCO); c.setFont(FONT_B, 11)
-    c.drawString(W/2 - len(label_txt)*2.8 + 2*mm, y_card_top - 8*mm, label_txt)
-    c.setFillColor(BRANCO); c.setFont(FONT_B, 36)
-    c.drawCentredString(W/2, y_card_top - 30*mm, f"{total} min/semana")
-    c.setFillColor(BRANCO); c.setFont(FONT_N, 10)
-    c.drawCentredString(W/2, y_card_top - 42*mm, "atividade física estimada por semana")
+    c.roundRect(20*mm, y_card_top-13*mm, W-40*mm, 13*mm, 5, fill=1, stroke=0)
+    draw_emoji(c, label_emoji, W/2-len(label_txt)*2.8-5*mm, y_card_top-1*mm, size=5)
+    c.setFillColor(BRANCO); c.setFont(FONT_B, 12)
+    c.drawString(W/2-len(label_txt)*2.8+2*mm, y_card_top-9*mm, label_txt)
+    c.setFillColor(BRANCO); c.setFont(FONT_B, 38)
+    c.drawCentredString(W/2, y_card_top-33*mm, f"{total} min/semana")
+    c.setFillColor(BRANCO); c.setFont(FONT_N, 11)
+    c.drawCentredString(W/2, y_card_top-45*mm, "atividade física estimada por semana")
+
+    # Plano de progressão para quem está abaixo
+    if status in ["insuficiente","parcial"]:
+        draw_card(c, 20*mm, y_card_top-card_h-5*mm-18*mm, W-40*mm, 20*mm, fill=CARD_CLARO)
+        c.setFillColor(VERDE_LIMA)
+        c.roundRect(20*mm, y_card_top-card_h-5*mm-18*mm, 5*mm, 20*mm, 2, fill=1, stroke=0)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
+        c.drawString(29*mm, y_card_top-card_h-5*mm-6*mm, "Seu plano de progressão:")
+        prog_items = [f"Semana 1-2: {max(total,10)} min", "Semana 3-4: +30 min",
+                      "Semana 5-6: +30 min", "→ Meta: 150 min/sem"]
+        x_prog = 95*mm
+        for pi in prog_items:
+            c.setFillColor(VERDE_MEDIO); c.setFont(FONT_N, 9)
+            c.drawString(x_prog, y_card_top-card_h-5*mm-11*mm, pi)
+            x_prog += 32*mm
+        y_msg_start = y_card_top-card_h-5*mm-18*mm-5*mm
+    else:
+        y_msg_start = y_card_top-card_h-5*mm
 
     msg_emoji = {"insuficiente":"sorriso","parcial":"fogo","adequado":"ok","excelente":"trofeu"}.get(status,"ok")
-    if status == "insuficiente":
-        msg = "Você está abaixo da recomendação da OMS (150 min/semana). Não se preocupe — seu protocolo vai aumentar progressivamente seu volume de treino de forma segura e sustentavel."
-    elif status == "parcial":
-        msg = "Você está quase lá! Com pequenos ajustes na sua rotina você atinge fácilmente os 150 min/semana recomendados pela OMS. Seu protocolo vai te ajudar a chegar la."
-    elif status == "adequado":
-        msg = "Parabéns! Você ja atinge as recomendações da OMS. Seu protocolo vai potencializar ainda mais seus resultados, otimizando qualidade e periodizacao dos treinos."
+    if status=="insuficiente":
+        msg = "Você está abaixo da recomendação da OMS (150 min/semana). Não se preocupe — seu protocolo vai aumentar progressivamente seu volume de treino de forma segura e sustentável."
+    elif status=="parcial":
+        msg = "Você está quase lá! Com pequenos ajustes na sua rotina você atinge facilmente os 150 min/semana recomendados pela OMS. Seu protocolo vai te ajudar a chegar lá."
+    elif status=="adequado":
+        msg = "Parabéns! Você já atinge as recomendações da OMS. Seu protocolo vai potencializar ainda mais seus resultados, otimizando qualidade e periodização dos treinos."
     else:
         msg = "Excelente! Você está acima das recomendações da OMS. Seu protocolo vai garantir recuperação adequada e maximizar seus resultados sem risco de overtraining."
 
-    y_msg = y_card_top - card_h - 5*mm
-    draw_card(c, 20*mm, y_msg-26*mm, W-40*mm, 28*mm, fill=CARD_CLARO)
-    draw_emoji(c, msg_emoji, 24*mm, y_msg-3*mm, size=5)
-    wrap(c, msg, 31*mm, y_msg-4*mm, W-55*mm, size=10, cor=TEXTO_ESCURO, leading=13, align=TA_LEFT)
+    draw_card(c, 20*mm, y_msg_start-28*mm, W-40*mm, 30*mm, fill=CARD_CLARO)
+    draw_emoji(c, msg_emoji, 24*mm, y_msg_start-3*mm, size=5)
+    wrap(c, msg, 31*mm, y_msg_start-5*mm, W-55*mm, size=11, cor=TEXTO_ESCURO, leading=14, align=TA_LEFT)
 
-    y_rec = y_msg - 34*mm
+    y_rec = y_msg_start-36*mm
     draw_emoji(c, "pino", 20*mm, y_rec+5*mm, size=5)
-    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 12)
     c.drawString(27*mm, y_rec, "Recomendação da OMS para adultos:")
-    for tipo_r, meta_r, ex_r, cor_r in [
-        ("Atividade moderada", "150 a 300 min/semana", "caminhada, bike, natacao", VERDE_MEDIO),
-        ("Atividade vigorosa",  "75 a 150 min/semana",  "corrida, HIIT, musculacao intensa", VERDE_ESCURO),
+    for tipo_r,meta_r,ex_r,cor_r in [
+        ("Atividade moderada","150 a 300 min/semana","caminhada, bike, natação",VERDE_MEDIO),
+        ("Atividade vigorosa","75 a 150 min/semana","corrida, HIIT, musculação intensa",VERDE_ESCURO),
     ]:
-        y_rec -= 20*mm
-        draw_card(c, 20*mm, y_rec-14*mm, W-40*mm, 16*mm, fill=cor_r)
-        c.setFillColor(BRANCO); c.setFont(FONT_B, 10)
-        c.drawString(24*mm, y_rec-5*mm, tipo_r+":")
-        c.setFont(FONT_B, 10)
-        c.drawString(85*mm, y_rec-5*mm, meta_r)
-        c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 8)
-        c.drawString(145*mm, y_rec-5*mm, f"({ex_r})")
+        y_rec -= 21*mm
+        draw_card(c, 20*mm, y_rec-15*mm, W-40*mm, 17*mm, fill=cor_r)
+        c.setFillColor(BRANCO); c.setFont(FONT_B, 11)
+        c.drawString(24*mm, y_rec-6*mm, tipo_r+":")
+        c.setFont(FONT_B, 11); c.drawString(85*mm, y_rec-6*mm, meta_r)
+        c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
+        c.drawString(145*mm, y_rec-6*mm, f"({ex_r})")
 
-    y_cons = y_rec - 28*mm
-    draw_card(c, 20*mm, y_cons-50*mm, W-40*mm, 54*mm, fill=CARD_CLARO)
-    c.setFillColor(VERDE_LIMA)
-    c.roundRect(20*mm, y_cons-50*mm, 5*mm, 54*mm, 2, fill=1, stroke=0)
+    y_cons = y_rec-28*mm
+    draw_card(c, 20*mm, y_cons-52*mm, W-40*mm, 56*mm, fill=CARD_CLARO)
+    c.setFillColor(VERDE_LIMA); c.roundRect(20*mm, y_cons-52*mm, 5*mm, 56*mm, 2, fill=1, stroke=0)
     draw_emoji(c, "halteres", 29*mm, y_cons-4*mm, size=5)
-    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
-    c.drawString(36*mm, y_cons-8*mm, "Como o protocolo Luis Kummer vai te ajudar:")
-    if status in ["insuficiente","parcial"]:
-        texto_c = "Seu protocolo sera montado para aumentar progressivamente seu volume de treino, respeitando seu ritmo atual e chegando gradualmente a meta da OMS, de forma segura e sustentavel."
-    else:
-        texto_c = "Seu protocolo vai potencializar seus resultados ja existentes, otimizando qualidade dos treinos, periodizando corretamente e garantindo recuperação adequada para maxima evolução."
-    wrap(c, texto_c, 29*mm, y_cons-22*mm, W-54*mm, size=10, cor=TEXTO_ESCURO, leading=13)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 12)
+    c.drawString(36*mm, y_cons-9*mm, "Como o protocolo Luis Kummer vai te ajudar:")
+    texto_c = ("Seu protocolo será montado para aumentar progressivamente seu volume de treino, "
+               "respeitando seu ritmo atual e chegando gradualmente à meta da OMS, de forma segura e sustentável."
+               if status in ["insuficiente","parcial"] else
+               "Seu protocolo vai potencializar seus resultados já existentes, otimizando qualidade dos treinos, "
+               "periodizando corretamente e garantindo recuperação adequada para máxima evolução.")
+    wrap(c, texto_c, 29*mm, y_cons-23*mm, W-54*mm, size=11, cor=TEXTO_ESCURO, leading=14)
 
     rodape(c, 5)
     c.showPage()
 
-# ── PÁGINA 6 — APP E DIFERENCIAIS ────────────────────────────────────────────
+# ── PÁGINA 6 — APP ────────────────────────────────────────────────────────────
 def pag_app(c, d):
     draw_bg_light(c)
     draw_header_light(c, "celular", "SEÇÃO 5 — Seu App de Treinos",
                       "Tudo que você vai ter acesso no seu protocolo")
 
     nome = d.get("nome") or "você"
-
-    # FIX: título abaixo do header
-    y_titulo = HEADER_BOTTOM() - 8*mm
-    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
+    y_titulo = HEADER_BOTTOM() - 9*mm
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 14)
     c.drawCentredString(W/2, y_titulo, f"{nome}, você vai ter tudo isso na palma da mão:")
 
     app1 = os.path.join(BASE_DIR, "app_print1.png")
     app2 = os.path.join(BASE_DIR, "app_print2.png")
-    app_w = 42*mm; app_h = 72*mm; gap_app = 8*mm
-    total_app_w = app_w*2 + gap_app
-    app_x1 = W/2 - total_app_w/2
-    app_x2 = app_x1 + app_w + gap_app
-    app_y_top = y_titulo - 6*mm
-
+    app_w=42*mm; app_h=72*mm; gap_app=8*mm
+    app_x1=W/2-(app_w*2+gap_app)/2; app_x2=app_x1+app_w+gap_app
+    app_y_top=y_titulo-7*mm
     if os.path.exists(app1):
-        c.drawImage(app1, app_x1, app_y_top-app_h,
-                    width=app_w, height=app_h, preserveAspectRatio=True, mask="auto")
+        c.drawImage(app1, app_x1, app_y_top-app_h, width=app_w, height=app_h,
+                    preserveAspectRatio=True, mask="auto")
     if os.path.exists(app2):
-        c.drawImage(app2, app_x2, app_y_top-app_h,
-                    width=app_w, height=app_h, preserveAspectRatio=True, mask="auto")
-
+        c.drawImage(app2, app_x2, app_y_top-app_h, width=app_w, height=app_h,
+                    preserveAspectRatio=True, mask="auto")
     c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 9)
     c.drawCentredString(W/2, app_y_top-app_h-4*mm, "Interface real do app MFIT Personal")
 
     diferenciais = [
-        ("halteres", "Protocolo personalizado",     "Treinos montados do zero pelo Luis exclusivamente para o seu perfil e objetivo."),
-        ("camera", "Videos de todos os exercícios","Cada exercício tem video do próprio Luis demonstrando a execução correta."),
-        ("chat", "Suporte direto com o Luis",    "Atendimento personalizado via app e WhatsApp com quem montou seu treino."),
-        ("meditacao", "Mobilidade e alongamento",     "Protocolos de mobilidade e alongamento inclusos para complementar os treinos."),
-        ("bike", "Orientações de cardio",        "Guia personalizado de cardio baseado no seu objetivo e tempo disponível."),
-        ("grafico", "Acompanhamento de evolução",   "Registre cargas e séries e veja seu progresso semana a semana."),
+        ("halteres",  "Protocolo personalizado",      "Treinos montados do zero pelo Luis exclusivamente para o seu perfil e objetivo."),
+        ("camera",    "Vídeos de todos os exercícios", "Cada exercício tem vídeo do próprio Luis demonstrando a execução correta."),
+        ("chat",      "Suporte direto com o Luis",     "Atendimento personalizado via app e WhatsApp com quem montou seu treino."),
+        ("meditacao", "Mobilidade e alongamento",      "Protocolos de mobilidade e alongamento inclusos para complementar os treinos."),
+        ("bike",      "Orientações de cardio",         "Guia personalizado de cardio baseado no seu objetivo e tempo disponível."),
+        ("grafico",   "Acompanhamento de evolução",    "Registre cargas e séries e veja seu progresso semana a semana."),
     ]
-    cw_d = (W-46*mm)/2; ch_d = 28*mm
-    y_d = app_y_top - app_h - 14*mm
+    cw_d=(W-46*mm)/2; ch_d=32*mm
+    y_d = app_y_top-app_h-14*mm
     for i,(emoji,tit,desc) in enumerate(diferenciais):
-        col = i%2; row = i//2
-        cx_d = 22*mm + col*(cw_d+4*mm)
-        cy_d = y_d - row*(ch_d+3*mm)
+        col=i%2; row=i//2
+        cx_d=22*mm+col*(cw_d+4*mm); cy_d=y_d-row*(ch_d+4*mm)
         draw_card(c, cx_d, cy_d-ch_d, cw_d, ch_d, fill=CARD_CLARO)
         c.setFillColor(VERDE_LIMA)
         c.roundRect(cx_d, cy_d-ch_d, 4*mm, ch_d, 2, fill=1, stroke=0)
-        draw_emoji(c, emoji, cx_d+6*mm, cy_d-3*mm, size=5)
-        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
-        c.drawString(cx_d+13*mm, cy_d-8*mm, tit)
-        wrap(c, desc, cx_d+7*mm, cy_d-13*mm, cw_d-12*mm,
-             size=8, cor=CINZA_TEXTO, leading=10, align=TA_LEFT)
+        draw_emoji(c, emoji, cx_d+6*mm, cy_d-3*mm, size=6)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
+        c.drawString(cx_d+14*mm, cy_d-9*mm, tit)
+        wrap(c, desc, cx_d+7*mm, cy_d-14*mm, cw_d-12*mm, size=9, cor=CINZA_TEXTO, leading=11, align=TA_LEFT)
 
-    # FIX: botão removido desta página (movido para pág 7)
+    # CTA no final da página 6
+    y_cta6 = y_d - 3*(ch_d+4*mm) - 8*mm
+    draw_card(c, 20*mm, y_cta6-14*mm, W-40*mm, 16*mm, fill=VERDE_ESCURO)
+    c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 11)
+    c.drawCentredString(W/2, y_cta6-9*mm, "Pronto para começar? Escolha seu plano na próxima página →")
 
     rodape(c, 6)
     c.showPage()
@@ -841,65 +863,77 @@ def pag_oferta(c, d):
     comp_raw = to_float(d.get("compro")) or 0
     meta     = meta_personalizada(d)
 
-    if meta.get("tipo") == "emagrecimento":
+    if meta.get("tipo")=="emagrecimento":
         frase_dest = f"{nome}, você tem tudo para perder {meta['diff']} kg."
-    elif meta.get("tipo") == "massa":
+    elif meta.get("tipo")=="massa":
         frase_dest = f"{nome}, você tem tudo para ganhar massa muscular de verdade."
     else:
         frase_dest = f"{nome}, você tem tudo para transformar sua qualidade de vida."
 
-    # FIX: card frase começa logo abaixo do header
     y_frase = HEADER_BOTTOM() - 5*mm
-    draw_card(c, 20*mm, y_frase-36*mm, W-40*mm, 38*mm, fill=VERDE_ESCURO)
-    # FIX: usar wrap() para frase longa não sair do box
-    c.setFillColor(BRANCO)
-    wrap(c, frase_dest, 25*mm, y_frase-6*mm, W-50*mm,
-         size=14, cor=BRANCO, leading=17, align=TA_CENTER)
+    draw_card(c, 20*mm, y_frase-38*mm, W-40*mm, 40*mm, fill=VERDE_ESCURO)
+    wrapB(c, frase_dest, 25*mm, y_frase-7*mm, W-50*mm, size=14, cor=BRANCO, leading=18, align=TA_CENTER)
     nivel = "seu alto nível de comprometimento" if comp_raw>=8 else "seu comprometimento"
-    c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 9)
-    c.drawCentredString(W/2, y_frase-26*mm, f"Com base no seu objetivo de {obj}")
-    c.drawCentredString(W/2, y_frase-33*mm, f"e em {nivel} ({int(comp_raw)}/10)")
+    c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 10)
+    c.drawCentredString(W/2, y_frase-28*mm, f"Com base no seu objetivo de {obj}")
+    c.drawCentredString(W/2, y_frase-36*mm, f"e em {nivel} ({int(comp_raw)}/10)")
 
+    # Planos — destaque no mais popular
     planos = [
-        ("Individual  —  1 Protocolo", "60 dias de acompanhamento", "R$ 119",
+        ("Individual  —  1 Protocolo",  "60 dias de acompanhamento",       "R$ 119", False,
          "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636"),
-        ("Dupla  —  1 Protocolo", "60 dias para você + 1 pessoa", "R$ 207",
+        ("Dupla  —  1 Protocolo",        "60 dias para você + 1 pessoa",    "R$ 207", False,
          "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112637&page=112636"),
-        ("Individual  —  3 Protocolos", "180 dias de acompanhamento", "R$ 297",
+        ("Individual  —  3 Protocolos",  "180 dias de acompanhamento",      "R$ 297", True,
          "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112638&page=112636"),
-        ("Dupla  —  3 Protocolos", "180 dias para você + 1 pessoa", "R$ 479",
+        ("Dupla  —  3 Protocolos",       "180 dias para você + 1 pessoa",   "R$ 479", False,
          "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112639&page=112636"),
     ]
-    ph=40*mm; gap=4*mm; y_s = y_frase - 36*mm
-    for i,(tit,desc,preco,url) in enumerate(planos):
-        y=y_s - i*(ph+gap)
-        draw_card(c, 20*mm, y-ph, W-40*mm, ph, fill=CARD_CLARO)
-        c.setFillColor(VERDE_ESCURO)
+    ph=40*mm; gap=4*mm; y_s=y_frase-42*mm
+    for i,(tit,desc,preco,popular,url) in enumerate(planos):
+        y=y_s-i*(ph+gap)
+        fill_plan = colors.HexColor("#E8F5EC") if not popular else colors.HexColor("#D0EDD6")
+        draw_card(c, 20*mm, y-ph, W-40*mm, ph, fill=fill_plan)
+        borda = DOURADO if popular else VERDE_ESCURO
+        c.setFillColor(borda)
         c.roundRect(20*mm, y-ph, 6*mm, ph, 2, fill=1, stroke=0)
-        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
-        c.drawString(30*mm, y-11*mm, tit)
-        c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 10)
-        c.drawString(30*mm, y-20*mm, desc)
-        c.setFillColor(DOURADO); c.setFont(FONT_B, 18)
-        c.drawString(30*mm, y-33*mm, preco)
-        # FIX: botão reposicionado e redimensionado
-        bx=W-68*mm; bw=44*mm; bh=10*mm
-        c.setFillColor(VERDE_LIMA)
-        c.roundRect(bx, y-ph+15*mm, bw, bh, 3, fill=1, stroke=0)
-        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 8)
-        c.drawCentredString(bx+bw/2, y-ph+20*mm, "Desbloquear →")
-        c.linkURL(url, (bx, y-ph+15*mm, bx+bw, y-ph+25*mm), relative=0)
 
-    # FIX: botão CTA principal ao final da página de oferta
-    y_cta = y_s - 4*(ph+gap) - 6*mm
-    bw_cta = W-40*mm; bh_cta = 16*mm; bx_cta = 20*mm
-    c.setFillColor(VERDE_LIMA)
-    c.roundRect(bx_cta, y_cta - bh_cta, bw_cta, bh_cta, 5, fill=1, stroke=0)
-    draw_emoji(c, "foguete", bx_cta + bw_cta/2 - 45*mm, y_cta - 2*mm, size=6)
-    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
-    c.drawString(bx_cta + bw_cta/2 - 36*mm, y_cta - 10*mm, "Começar meu protocolo →")
-    url_cta = "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636"
-    c.linkURL(url_cta, (bx_cta, y_cta - bh_cta, bx_cta + bw_cta, y_cta), relative=0)
+        # Selo "MAIS ESCOLHIDO" — destaque chamativo
+        if popular:
+            sw=52*mm; sh=10*mm; sx=W/2-sw/2; sy=y+4*mm
+            # sombra
+            c.setFillColor(colors.HexColor("#8B6914"))
+            c.roundRect(sx+1*mm, sy-sh-1*mm, sw, sh, 4, fill=1, stroke=0)
+            # fundo dourado
+            c.setFillColor(DOURADO)
+            c.roundRect(sx, sy-sh, sw, sh, 4, fill=1, stroke=0)
+            # borda branca fina
+            c.setStrokeColor(BRANCO); c.setLineWidth(1)
+            c.roundRect(sx+1*mm, sy-sh+1*mm, sw-2*mm, sh-2*mm, 3, fill=0, stroke=1)
+            # texto
+            c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 10)
+            c.drawCentredString(sx+sw/2, sy-7*mm, "★  MAIS ESCOLHIDO  ★")
+
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
+        c.drawString(30*mm, y-12*mm, tit)
+        c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 11)
+        c.drawString(30*mm, y-22*mm, desc)
+        c.setFillColor(DOURADO); c.setFont(FONT_B, 20)
+        c.drawString(30*mm, y-36*mm, preco)
+
+        # Economia no plano de 3 protocolos
+        if "3 Proto" in tit and "Individual" in tit:
+            c.setFillColor(VERDE_MEDIO); c.setFont(FONT_N, 8)
+            c.drawString(56*mm, y-36*mm, "  economize R$60 vs comprar separado")
+        elif "3 Proto" in tit and "Dupla" in tit:
+            c.setFillColor(VERDE_MEDIO); c.setFont(FONT_N, 8)
+            c.drawString(56*mm, y-36*mm, "  economize R$135 vs comprar separado")
+
+        bx=W-70*mm; bw=46*mm; bh=11*mm
+        c.setFillColor(VERDE_LIMA); c.roundRect(bx, y-ph+15*mm, bw, bh, 3, fill=1, stroke=0)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 9)
+        c.drawCentredString(bx+bw/2, y-ph+21*mm, "Desbloquear →")
+        c.linkURL(url, (bx, y-ph+15*mm, bx+bw, y-ph+26*mm), relative=0)
 
     rodape(c, 7)
     c.showPage()
@@ -908,38 +942,42 @@ def pag_oferta(c, d):
 def pag_depoimentos(c, d):
     draw_bg_light(c)
     draw_header_light(c, "estrela", "SEÇÃO 7 — Resultados Reais",
-                      "Quem ja transformou a vida com o protocolo Luis Kummer")
+                      "Quem já transformou a vida com o protocolo Luis Kummer")
 
     nome = d.get("nome") or "você"
-
     deps = [
-        ("Ana Paula, 34 anos", "Perdi 8kg em 60 dias seguindo o protocolo. O acompanhamento pelo app fez toda a diferença! Nunca imaginei conseguir me comprometer tanto.", 5),
-        ("Marcos e Juliana",   "Fizemos o plano dupla e foi incrível! Nos motivamos juntos e em 3 meses transformamos completamente nosso estilo de vida.", 5),
-        ("Fernanda, 28 anos",  "Nunca pensei que conseguiria manter uma rotina de treinos. O protocolo e prático e se encaixa perfeitamente na minha rotina corrida.", 5),
-        ("Cristiane, 41 anos", "Com duas filhas e trabalho não sobrava tempo. O Luis montou um treino perfeito para minha realidade e em 60 dias ja vi resultados.", 5),
-        ("Roberto, 52 anos",   "Comecei com receio por causa da idade e de uma hernia. O protocolo foi totalmente adaptado e hoje me sinto mais disposto do que aos 40!", 5),
+        ("Ana Paula, 34 anos",  "Perdi 8kg em 60 dias seguindo o protocolo. O acompanhamento pelo app fez toda a diferença! Nunca imaginei conseguir me comprometer tanto.", 5),
+        ("Marcos e Juliana",    "Fizemos o plano dupla e foi incrível! Nos motivamos juntos e em 3 meses transformamos completamente nosso estilo de vida.", 5),
+        ("Fernanda, 28 anos",   "Nunca pensei que conseguiria manter uma rotina de treinos. O protocolo é prático e se encaixa perfeitamente na minha rotina corrida.", 5),
+        ("Cristiane, 41 anos",  "Com duas filhas e trabalho não sobrava tempo. O Luis montou um treino perfeito para minha realidade e em 60 dias já vi resultados.", 5),
+        ("Roberto, 52 anos",    "Comecei com receio por causa da idade e de uma hérnia. O protocolo foi totalmente adaptado e hoje me sinto mais disposto do que aos 40!", 5),
     ]
 
-    # FIX: y inicial logo abaixo do header
     y = HEADER_BOTTOM() - 6*mm
     for nome_d, dep, nstars in deps:
-        h_box = 30*mm
+        h_box = 32*mm
         draw_card(c, 20*mm, y-h_box, W-40*mm, h_box, fill=CARD_CLARO)
         c.setFillColor(VERDE_LIMA)
         c.roundRect(20*mm, y-h_box, 6*mm, h_box, 2, fill=1, stroke=0)
-        c.setFillColor(DOURADO); c.setFont(FONT_N, 10)
-        c.drawString(30*mm, y-7*mm, "★"*nstars)
-        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
-        c.drawString(62*mm, y-7*mm, nome_d)
-        wrap(c, f'"{dep}"', 30*mm, y-12*mm, W-54*mm,
-             size=9, cor=CINZA_TEXTO, leading=11, align=TA_LEFT)
-        y -= h_box + 4*mm
 
-    # FIX: card final sem botão CTA (movido para pág 7)
-    y_cta = y - 4*mm
-    draw_card(c, 20*mm, y_cta-18*mm, W-40*mm, 20*mm, fill=VERDE_ESCURO)
-    c.setFillColor(BRANCO); c.setFont(FONT_B, 14)
-    c.drawCentredString(W/2, y_cta-12*mm, f"{nome}, agora é a sua vez. ")
+        # Avatar circular
+        av_cx=37*mm; av_cy=y-h_box/2; av_r=7*mm
+        c.setFillColor(VERDE_ESCURO); c.circle(av_cx, av_cy, av_r, fill=1, stroke=0)
+        c.setFillColor(BRANCO); c.setFont(FONT_B, 11)
+        inicial = nome_d[0].upper()
+        c.drawCentredString(av_cx, av_cy-3*mm, inicial)
+
+        c.setFillColor(DOURADO); c.setFont(FONT_N, 11)
+        c.drawString(49*mm, y-7*mm, "★"*nstars)
+        c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 12)
+        c.drawString(49*mm, y-14*mm, nome_d)
+        wrap(c, f'"{dep}"', 49*mm, y-18*mm, W-73*mm, size=9, cor=CINZA_TEXTO, leading=11, align=TA_LEFT)
+        y -= h_box+4*mm
+
+    y_cta = y-4*mm
+    draw_card(c, 20*mm, y_cta-20*mm, W-40*mm, 22*mm, fill=VERDE_ESCURO)
+    c.setFillColor(BRANCO); c.setFont(FONT_B, 15)
+    c.drawCentredString(W/2, y_cta-13*mm, f"{nome}, agora é a sua vez.")
 
     rodape(c, 8)
     c.showPage()
@@ -976,9 +1014,9 @@ if __name__ == "__main__":
         "cardio": "danca, natacao, hiit, bike, corrida",
         "tempo_cardio": "20 a 30 min",
         "alimentacao": "alimentação razoável",
-        "compro": "9", "estresse": "7",
+        "compro": "9", "estresse": "10",
     }
     pdf = gerar_pdf_diagnostico(dados)
-    with open("/mnt/user-data/outputs/diagnostico_v2.pdf", "wb") as f:
+    with open("/mnt/user-data/outputs/diagnostico_v3.pdf", "wb") as f:
         f.write(pdf)
     print("OK — 8 paginas")
