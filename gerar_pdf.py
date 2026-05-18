@@ -340,7 +340,7 @@ def pag_capa(c, d):
     c.setFillColor(CINZA_TEXTO); c.setFont(FONT_N, 9)
     c.drawCentredString(W/2, H-221*mm,
         "Este diagnóstico é baseado nas suas respostas e não substitui avaliação médica.")
-    rodape(c, 1, dark=True)
+    rodape(c, 1, total=9, dark=True)
     c.showPage()
 
 # ── PÁGINA 2 — DIAGNÓSTICO ────────────────────────────────────────────────────
@@ -517,7 +517,7 @@ def pag_bio(c, d):
     draw_emoji(c, frase_emoji, 24*mm, y_frase-3*mm, size=5)
     wrap(c, frase, 31*mm, y_frase-4*mm, W-55*mm, size=11, cor=VERDE_ESCURO, leading=14, align=TA_LEFT)
 
-    rodape(c, 2)
+    rodape(c, 2, total=9)
     c.showPage()
 
 # ── PÁGINA 3 — META E HÁBITOS ─────────────────────────────────────────────────
@@ -597,10 +597,153 @@ def pag_meta(c, d):
     wrap(c, frase_compro, 37*mm, y-5*mm, W-62*mm,
          size=10, cor=cor_compro, leading=13, align=TA_LEFT)
 
-    rodape(c, 3)
+    rodape(c, 3, total=9)
     c.showPage()
 
-# ── PÁGINA 4 — LEITURA DO PERFIL ─────────────────────────────────────────────
+# ── PÁGINA 4 — RESUMO NARRATIVO ──────────────────────────────────────────────
+def pag_resumo(c, d):
+    draw_bg_light(c)
+    draw_header_light(c, "lupa", "SEÇÃO 3 — Seu Resumo Personalizado",
+                      "Uma leitura humana de tudo que você nos contou")
+
+    nome     = d.get("nome") or "você"
+    obj      = obj_texto(d.get("objetivo",""))
+    idade    = safe(d.get("idade"))
+    peso     = safe(d.get("peso"))
+    altura   = safe(d.get("altura"))
+    peso_obj = safe(d.get("peso_obj"))
+    imc_val  = d.get("imc") or calc_imc(d.get("peso"), d.get("altura"))
+    imc_f    = to_float(imc_val)
+    COR_IMC  = cor_imc(imc_f)
+    comp_raw = to_float(d.get("compro")) or 0
+    estresse = to_float(d.get("estresse")) or 0
+    exerc    = safe(d.get("exercicio"))
+    tempo_t  = safe(d.get("tempo_treino"))
+    cardio   = safe(d.get("cardio"))
+    alim     = safe(d.get("alimentacao"))
+    lim      = str(d.get("limitacao") or "")
+    med      = str(d.get("medicamentos") or "")
+    meta     = meta_personalizada(d)
+
+    y = HEADER_BOTTOM() - 10*mm
+
+    # ── Bloco 1: Quem é você ──
+    draw_card(c, 20*mm, y-28*mm, W-40*mm, 30*mm, fill=VERDE_ESCURO)
+    c.setFillColor(VERDE_LIMA); c.roundRect(20*mm, y-28*mm, 5*mm, 30*mm, 2, fill=1, stroke=0)
+    c.setFillColor(BRANCO); c.setFont(FONT_B, 11)
+    c.drawString(28*mm, y-5*mm, "Quem é você")
+
+    # monta frase de perfil
+    imc_txt = f"IMC {imc_f} ({class_imc(imc_val)})" if imc_f else ""
+    if idade != "Não informado":
+        perfil = f"{nome} tem {idade} anos, pesa {peso} kg e mede {altura} cm. {imc_txt}."
+    else:
+        perfil = f"{nome} pesa {peso} kg e mede {altura} cm. {imc_txt}."
+    if meta.get("tipo") == "emagrecimento":
+        perfil += f" Quer perder {meta['diff']} kg, chegando a {int(meta['peso_obj'])} kg."
+    elif meta.get("tipo") == "massa":
+        perfil += f" Objetivo: ganho de massa muscular."
+    else:
+        perfil += f" Objetivo: {obj}."
+    wrap(c, perfil, 28*mm, y-13*mm, W-52*mm, size=10, cor=VERDE_CLARO, leading=13, align=TA_LEFT)
+    y -= 34*mm
+
+    # ── Bloco 2: Rotina atual ──
+    draw_card(c, 20*mm, y-34*mm, W-40*mm, 36*mm, fill=CARD_CLARO)
+    c.setFillColor(VERDE_LIMA); c.roundRect(20*mm, y-34*mm, 5*mm, 36*mm, 2, fill=1, stroke=0)
+    draw_emoji(c, "correr", 28*mm, y-2*mm, size=5)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
+    c.drawString(36*mm, y-5*mm, "Rotina atual")
+
+    exerc_str = exerc if exerc != "Não informado" else "não pratica exercícios regularmente"
+    cardio_str = cardio if cardio.lower() not in ["não informado","nao","não"] else "sem cardio regular"
+    rotina = (f"Atualmente {exerc_str}, com sessões de {tempo_t}. "
+              f"Em relação ao cardio: {cardio_str}. "
+              f"A alimentação é {alim.lower() if alim != 'Não informado' else 'não informada'}.")
+    wrap(c, rotina, 28*mm, y-14*mm, W-52*mm, size=10, cor=TEXTO_ESCURO, leading=13, align=TA_LEFT)
+    y -= 40*mm
+
+    # ── Bloco 3: Fatores de atenção ──
+    fatores = []
+    if estresse >= 8:
+        fatores.append(f"estresse muito alto ({int(estresse)}/10) — isso impacta diretamente recuperação e resultados")
+    elif estresse >= 6:
+        fatores.append(f"estresse elevado ({int(estresse)}/10) — vale monitorar durante o protocolo")
+    if lim.lower() not in ["nenhuma","não","none","","não informado"]:
+        fatores.append(f"limitações físicas: {lim}")
+    if med.lower() not in ["nenhum","não","none","","não informado"]:
+        fatores.append(f"uso de medicamentos: {med}")
+
+    if fatores:
+        h_fat = 14*mm + len(fatores)*14*mm
+        draw_card(c, 20*mm, y-h_fat, W-40*mm, h_fat+2*mm, fill=colors.HexColor("#FFF8E1"))
+        c.setFillColor(LARANJA); c.roundRect(20*mm, y-h_fat, 5*mm, h_fat+2*mm, 2, fill=1, stroke=0)
+        draw_emoji(c, "aviso", 28*mm, y-2*mm, size=5)
+        c.setFillColor(LARANJA); c.setFont(FONT_B, 11)
+        c.drawString(36*mm, y-5*mm, "Fatores de atenção")
+        yf = y - 14*mm
+        for fat in fatores:
+            wrap(c, f"• {fat}", 28*mm, yf, W-52*mm, size=10, cor=TEXTO_ESCURO, leading=12, align=TA_LEFT)
+            yf -= 14*mm
+        y -= h_fat + 8*mm
+    else:
+        y -= 4*mm
+
+    # ── Bloco 4: Comprometimento + frase ──
+    draw_card(c, 20*mm, y-28*mm, W-40*mm, 30*mm, fill=CARD_CLARO)
+    c.setFillColor(VERDE_LIMA); c.roundRect(20*mm, y-28*mm, 5*mm, 30*mm, 2, fill=1, stroke=0)
+    draw_emoji(c, "musculo", 28*mm, y-2*mm, size=5)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
+    c.drawString(36*mm, y-5*mm, f"Comprometimento: {int(comp_raw)}/10")
+    if comp_raw >= 9:
+        frase_c = "Nível impressionante. Com essa determinação, os resultados são inevitáveis."
+    elif comp_raw >= 7:
+        frase_c = "Ótimo nível. Você já está à frente da maioria das pessoas que iniciam."
+    elif comp_raw >= 5:
+        frase_c = "Bom começo. O protocolo vai te ajudar a construir consistência ao longo do tempo."
+    else:
+        frase_c = "O primeiro passo já foi dado. O protocolo é feito para encaixar na sua rotina."
+    wrap(c, frase_c, 28*mm, y-14*mm, W-52*mm, size=10, cor=CINZA_TEXTO, leading=13, align=TA_LEFT)
+    y -= 34*mm
+
+    # ── Bloco 5: O que o protocolo vai fazer por você ──
+    draw_card(c, 20*mm, y-40*mm, W-40*mm, 42*mm, fill=VERDE_ESCURO)
+    c.setFillColor(VERDE_LIMA); c.roundRect(20*mm, y-40*mm, 5*mm, 42*mm, 2, fill=1, stroke=0)
+    draw_emoji(c, "alvo", 28*mm, y-2*mm, size=5)
+    c.setFillColor(VERDE_LIMA); c.setFont(FONT_B, 11)
+    c.drawString(36*mm, y-5*mm, "O que o protocolo vai fazer por você")
+
+    # frase dinâmica por objetivo
+    if meta.get("tipo") == "emagrecimento":
+        protocolo_txt = (f"Com base no seu IMC ({imc_f}) e no seu ritmo de vida, seu protocolo será montado "
+                         f"para uma perda de {meta['taxa']} kg/semana — chegando a {int(meta['peso_obj'])} kg "
+                         f"em aproximadamente {meta['meses']} meses. Treinos adaptados às suas limitações, "
+                         f"cardio orientado e suporte direto em cada etapa.")
+    elif meta.get("tipo") == "massa":
+        protocolo_txt = (f"Seu protocolo será focado em ganho de massa muscular de forma progressiva, "
+                         f"com treinos montados do zero para o seu nível atual, periodização correta "
+                         f"e orientação nutricional integrada. Resultados esperados: "
+                         f"+{meta['g3min']}-{meta['g3max']} kg em 3 meses.")
+    else:
+        protocolo_txt = (f"Seu protocolo será estruturado para evoluir sua qualidade de vida: "
+                         f"aumentar frequência de treinos, reduzir estresse e criar consistência "
+                         f"de forma gradual e sustentável, respeitando seu ritmo e limitações.")
+    wrap(c, protocolo_txt, 28*mm, y-16*mm, W-52*mm, size=10, cor=VERDE_CLARO, leading=13, align=TA_LEFT)
+    y -= 44*mm
+
+    # Botão CTA — centralizado
+    bw=W-40*mm; bh=16*mm; bx=20*mm
+    c.setFillColor(VERDE_LIMA); c.roundRect(bx, y-bh, bw, bh, 5, fill=1, stroke=0)
+    draw_emoji(c, "foguete", W/2-55*mm, y-2*mm, size=6)
+    c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 13)
+    c.drawCentredString(W/2+4*mm, y-11*mm, "Quero meu protocolo personalizado →")
+    url_cta = "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636"
+    c.linkURL(url_cta, (bx, y-bh, bx+bw, y), relative=0)
+
+    rodape(c, 4, total=9)
+    c.showPage()
+
+# ── PÁGINA 5 — LEITURA DO PERFIL ─────────────────────────────────────────────
 def pag_perfil(c, d):
     draw_bg_light(c)
     draw_header_light(c, "lupa", "SEÇÃO 3 — Leitura do seu perfil",
@@ -694,13 +837,13 @@ def pag_perfil(c, d):
          size=9, cor=VERDE_CLARO, leading=12, align=TA_CENTER)
     bw=90*mm; bh=13*mm; bx=W/2-bw/2; by=y_cta-34*mm+4*mm
     c.setFillColor(VERDE_LIMA); c.roundRect(bx, by, bw, bh, 4, fill=1, stroke=0)
-    draw_emoji(c, "cadeado", bx+6*mm, by+bh-2*mm, size=5)
+    draw_emoji(c, "cadeado", W/2-48*mm, by+bh-2*mm, size=5)
     c.setFillColor(VERDE_ESCURO); c.setFont(FONT_B, 11)
-    c.drawString(bx+14*mm, by+3*mm, "Quero a consultoria →")
+    c.drawCentredString(W/2+4*mm, by+4*mm, "Quero a consultoria →")
     url_p7 = "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636"
     c.linkURL(url_p7, (bx, by, bx+bw, by+bh), relative=0)
 
-    rodape(c, 4)
+    rodape(c, 5, total=9)
     c.showPage()
 
 # ── PÁGINA 5 — LAUDO OMS ─────────────────────────────────────────────────────
@@ -794,7 +937,7 @@ def pag_oms(c, d):
                "periodizando corretamente e garantindo recuperação adequada para máxima evolução.")
     wrap(c, texto_c, 29*mm, y_cons-23*mm, W-54*mm, size=11, cor=TEXTO_ESCURO, leading=14)
 
-    rodape(c, 5)
+    rodape(c, 6, total=9)
     c.showPage()
 
 # ── PÁGINA 6 — APP ────────────────────────────────────────────────────────────
@@ -849,7 +992,7 @@ def pag_app(c, d):
     c.setFillColor(VERDE_CLARO); c.setFont(FONT_N, 11)
     c.drawCentredString(W/2, y_cta6-9*mm, "Pronto para começar? Escolha seu plano na próxima página →")
 
-    rodape(c, 6)
+    rodape(c, 7, total=9)
     c.showPage()
 
 # ── PÁGINA 7 — PLANOS ─────────────────────────────────────────────────────────
@@ -935,7 +1078,7 @@ def pag_oferta(c, d):
         c.drawCentredString(bx+bw/2, y-ph+21*mm, "Desbloquear →")
         c.linkURL(url, (bx, y-ph+15*mm, bx+bw, y-ph+26*mm), relative=0)
 
-    rodape(c, 7)
+    rodape(c, 8, total=9)
     c.showPage()
 
 # ── PÁGINA 8 — DEPOIMENTOS ────────────────────────────────────────────────────
@@ -979,7 +1122,7 @@ def pag_depoimentos(c, d):
     c.setFillColor(BRANCO); c.setFont(FONT_B, 15)
     c.drawCentredString(W/2, y_cta-13*mm, f"{nome}, agora é a sua vez.")
 
-    rodape(c, 8)
+    rodape(c, 9, total=9)
     c.showPage()
 
 # ── FUNÇÃO PRINCIPAL ──────────────────────────────────────────────────────────
@@ -993,6 +1136,7 @@ def gerar_pdf_diagnostico(dados):
     pag_capa(c, dados)
     pag_bio(c, dados)
     pag_meta(c, dados)
+    pag_resumo(c, dados)
     pag_perfil(c, dados)
     pag_oms(c, dados)
     pag_app(c, dados)
@@ -1019,4 +1163,4 @@ if __name__ == "__main__":
     pdf = gerar_pdf_diagnostico(dados)
     with open("/mnt/user-data/outputs/diagnostico_v3.pdf", "wb") as f:
         f.write(pdf)
-    print("OK — 8 paginas")
+    print("OK — 9 paginas")
