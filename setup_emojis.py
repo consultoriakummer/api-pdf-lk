@@ -50,6 +50,10 @@ EMOJIS = {
     'brilho':    '🌟',
     'cadeado':   '🔓',
     'medico':    '⚕️',
+    'calendario': '📅',
+'casa':       '🏠',
+'coracao':    '❤️',
+'video':      '🎬',
 }
 
 def instalar_fonte():
