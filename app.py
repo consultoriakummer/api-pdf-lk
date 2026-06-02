@@ -6,9 +6,13 @@ app = Flask(__name__)
 
 @app.route("/gerar-pdf", methods=["POST"])
 def gerar_pdf():
-    dados = request.get_json()
+    dados = request.get_json(force=True, silent=True)
     if not dados:
-        return jsonify({"erro": "Dados não recebidos"}), 400
+        return jsonify({
+            "erro": "Dados não recebidos",
+            "content_type": request.content_type,
+            "body_raw": request.data.decode("utf-8")[:500]
+        }), 400
     
     pdf_bytes = gerar_pdf_diagnostico(dados)
     pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
