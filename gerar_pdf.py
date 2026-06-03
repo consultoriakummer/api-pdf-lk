@@ -862,7 +862,7 @@ def pag_oms(c,d):
     cards2=[
         ("bike",   "CARDIO PRATICADO",
          f"{oms['min_card']} min/sem" if oms['min_card']>0 else "0 min/sem",
-         f"{fc_txt(d.get('freq_cardio',''))} · {oms['tempo_cardio']}" + (f"  ·  {oms['tipo_cardio']}" if oms['min_card']>0 else ""),
+         f"{fc_txt(d.get('freq_cardio',''))} · {oms['tempo_cardio']}" + (f"  ·  {oms['tipo_cardio']}" if oms['min_card']>0 else "") + ("\nIntensidade vigorosa — equivale a 2× na OMS" if oms['intens']=='vigorosa' and oms['min_card']>0 else ""),
          AZUL_B, AZUL_CARD),
         ("alvo",   "META OMS",
          "150–300 min/sem",
@@ -884,9 +884,9 @@ def pag_oms(c,d):
     card_l(c,18*mm,y-22*mm,W-36*mm,23*mm,fill=LC,r=3)
     # label esquerdo + barra + valor direito — tudo dentro do card (margem 24mm..W-22mm)
     _bx=58*mm; _bw=W-88*mm  # barra começa em 58mm, termina em W-30mm
-    c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-6*mm,"Você (equiv.)")
-    barra(c,_bx,y-11*mm,_bw,4.5,min(oms["min_card_equiv"]/300.0,1.0),cor_c,LCG)
-    c.setFillColor(TD); c.setFont(FB,8.5); c.drawRightString(W-22*mm,y-9.5*mm,f"{oms['min_card_equiv']} min")
+    c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-6*mm,"Você")
+    barra(c,_bx,y-11*mm,_bw,4.5,min(oms["min_card"]/300.0,1.0),cor_c,LCG)
+    c.setFillColor(TD); c.setFont(FB,8.5); c.drawRightString(W-22*mm,y-9.5*mm,f"{oms['min_card']} min")
     c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-17*mm,"Meta OMS")
     barra(c,_bx,y-22*mm,_bw,4.5,150/300.0,VM,LCG)
     c.setFillColor(TD); c.setFont(FB,8.5); c.drawRightString(W-22*mm,y-20*mm,"150 min")
