@@ -449,7 +449,11 @@ def pag_capa(c,d):
         if i>0:
             c.setStrokeColor(PB); c.setLineWidth(0.5)
             c.line(18*mm+i*cw3,cy-10*mm,18*mm+i*cw3,cy-ch+10*mm)
-        c.setFillColor(VN); c.setFont(FB,44); c.drawCentredString(cx3,cy-26*mm,str(num))
+        # fonte adaptável: reduz se texto longo (ex: "+1.2-2.4" no ganho de massa)
+        _num_str=str(num); _fn_size=44
+        if len(_num_str)>6: _fn_size=22
+        elif len(_num_str)>4: _fn_size=30
+        c.setFillColor(VN); c.setFont(FB,_fn_size); c.drawCentredString(cx3,cy-26*mm,_num_str)
         c.setFillColor(CT); c.setFont(FN,9); c.drawCentredString(cx3,cy-34*mm,unid)
         c.setFillColor(CS); c.setFont(FB,7.5); c.drawCentredString(cx3,cy-42*mm,lbl)
     # seções
@@ -849,12 +853,14 @@ def pag_oms(c,d):
     # barra comparativa cardio
     y-=3*mm
     card_l(c,18*mm,y-22*mm,W-36*mm,23*mm,fill=LC,r=3)
+    # label esquerdo + barra + valor direito — tudo dentro do card (margem 24mm..W-22mm)
+    _bx=58*mm; _bw=W-88*mm  # barra começa em 58mm, termina em W-30mm
     c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-6*mm,"Você (equiv.)")
-    barra(c,58*mm,y-11*mm,W-86*mm,4.5,min(oms["min_card_equiv"]/300.0,1.0),cor_c,LCG)
-    c.setFillColor(TD); c.setFont(FB,8.5); c.drawString(W-26*mm,y-9.5*mm,f"{oms['min_card_equiv']} min")
+    barra(c,_bx,y-11*mm,_bw,4.5,min(oms["min_card_equiv"]/300.0,1.0),cor_c,LCG)
+    c.setFillColor(TD); c.setFont(FB,8.5); c.drawRightString(W-22*mm,y-9.5*mm,f"{oms['min_card_equiv']} min")
     c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-17*mm,"Meta OMS")
-    barra(c,58*mm,y-22*mm,W-86*mm,4.5,150/300.0,VM,LCG)
-    c.setFillColor(TD); c.setFont(FB,8.5); c.drawString(W-32*mm,y-20*mm,"150 min")
+    barra(c,_bx,y-22*mm,_bw,4.5,150/300.0,VM,LCG)
+    c.setFillColor(TD); c.setFont(FB,8.5); c.drawRightString(W-22*mm,y-20*mm,"150 min")
     y-=26*mm
 
     # mensagem personalizada de cardio
