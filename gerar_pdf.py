@@ -1,4 +1,4 @@
-import io, os
+import io, os, sys
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -14,6 +14,32 @@ W, H = A4
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EMOJI_DIR = os.path.join(BASE_DIR, "emojis")
 TOTAL_PAGES = 9
+
+# ── AUTO-SETUP EMOJIS ────────────────────────────────────────────────────────
+_EMOJI_NAMES = [
+    'balanca','regua','bolo','alvo','barras','musculo','correr','salada',
+    'relogio','bike','alarme','raiva','aviso','remedio','celular','estrela',
+    'lupa','lista','pino','halteres','grafico','camera','chat','meditacao',
+    'foguete','ok','trofeu','fogo','sorriso','brilho','cadeado','medico',
+    'calendario','casa','coracao','video',
+]
+
+def _ensure_emojis():
+    faltando = [n for n in _EMOJI_NAMES
+                if not os.path.exists(os.path.join(EMOJI_DIR, f"{n}.png"))]
+    if not faltando:
+        return
+    try:
+        sys.path.insert(0, BASE_DIR)
+        import setup_emojis as _se
+        resultado = _se.instalar_fonte()
+        font_path = resultado if isinstance(resultado, str) else None
+        if resultado:
+            _se.gerar_emojis(font_path)
+    except Exception as e:
+        print(f"[emoji-setup] falhou silenciosamente: {e}", flush=True)
+
+_ensure_emojis()
 
 def _reg():
     b = BASE_DIR
@@ -100,11 +126,11 @@ def obj_txt(o):
     return m.get(str(o or "").lower().strip(),str(o) if o else "Não informado")
 
 def ex_txt(e):
-    m={"nao":"Não pratico musculação","1x":"1-2x por semana","3x":"3-4x por semana","5x":"5x ou mais/sem"}
+    m={"nao":"Não pratico musculação","1x":"1-2x por semana","3x":"3-4x por semana","5x":"5x ou mais por semana"}
     return m.get(str(e or "").lower().strip(),str(e) if e else "–")
 
 def fc_txt(f):
-    m={"nao":"Não faz cardio","1x":"1-2x por semana","3x":"3-4x por semana","5x":"5x ou mais/sem"}
+    m={"nao":"Não faz cardio","1x":"1-2x por semana","3x":"3-4x por semana","5x":"5x ou mais por semana"}
     return m.get(str(f or "").lower().strip(),str(f) if f else "–")
 
 def tt_txt(t):
@@ -165,42 +191,87 @@ def meta(d):
     return {"tipo":"saude"}
 
 def oms_detalhado(d):
-    """Retorna breakdown detalhado: musculação + cardio separados"""
-    es=str(d.get("exercicio") or "").lower(); ts=str(d.get("tempo_treino") or "").lower()
-    cs=str(d.get("cardio") or "").lower();   ct=str(d.get("tempo_cardio") or "").lower()
+    """
+    Lógica OMS para adultos — dois eixos independentes:
+
+    CARDIO: meta 150–300 min/sem moderado (ou 75–150 vigoroso equivalente)
+      - Cardio vigoroso (HIIT, corrida) equivale a 2x moderado
+      - Status: insuf (<75 equiv) | parcial (75–149) | ok (150–300) | exce (>300)
+
+    FORÇA (fortalecimento muscular): meta ≥2 dias/semana
+      - Contagem via campo 'exercicio' (frequência semanal de musculação)
+      - Status: nao (0 dias) | insuf (1 dia) | ok (≥2 dias)
+    """
+    es=str(d.get("exercicio") or "").lower()
+    ts=str(d.get("tempo_treino") or "").lower()
+    cs=str(d.get("cardio") or "").lower()
+    ct=str(d.get("tempo_cardio") or "").lower()
     fc=str(d.get("freq_cardio") or "").lower()
 
-    freq_musc={"1x":1,"3x":3,"5x":5}.get(es,0)
-    mt_musc={"menos30":20,"30a45":37,"45a60":52,"mais60":75}.get(ts,0)
-    min_musc=freq_musc*mt_musc
+    # ── FORÇA ─────────────────────────────────────────────────────────────────
+    # Usa valor MÁXIMO do intervalo (benefício da dúvida para o aluno)
+    # "1x" = 1-2x/sem → max=2; "3x" = 3-4x/sem → max=4; "5x" = 5+/sem → max=5
+    freq_forca_max={"nao":0,"1x":2,"3x":4,"5x":5}.get(es,0)
+    freq_forca_min={"nao":0,"1x":1,"3x":3,"5x":5}.get(es,0)
+    mt_forca={"nao_treino":0,"menos30":20,"30a45":37,"45a60":52,"mais60":75}.get(ts,0)
+    min_forca=freq_forca_min*mt_forca  # usa mínimo para minutos (conservador)
 
-    freq_card={"1x":1,"3x":3,"5x":5}.get(fc,0)
-    mt_card={"menos20":15,"20a30":25,"30a45":37,"mais45":52}.get(ct,0)
-    min_card=freq_card*mt_card if cs not in ["nao","","none"] else 0
+    # Status de força segundo OMS (≥2 dias/sem) — usa MÁXIMO (benefício da dúvida)
+    if freq_forca_max==0:   st_forca="nao"
+    elif freq_forca_max==1: st_forca="insuf"
+    else:                    st_forca="ok"   # max≥2 → pode estar ok
 
-    # Cardio vigoroso vale 2x na OMS
+    freq_forca=freq_forca_min  # usado para exibição de número mínimo
+
+    # ── CARDIO ────────────────────────────────────────────────────────────────
+    # Usa valor MÁXIMO do intervalo para status, MÍNIMO para minutos
+    freq_card_max={"nao":0,"1x":2,"3x":4,"5x":5}.get(fc,0)
+    freq_card={"nao":0,"1x":1,"3x":3,"5x":5}.get(fc,0)
+    mt_card={"nao_faco":0,"menos20":15,"20a30":25,"30a45":37,"mais45":52}.get(ct,0)
+    sem_cardio=cs in ["nao","","none","nao_faco"] or freq_card==0
+    min_card=0 if sem_cardio else freq_card*mt_card
+
     intens=cardio_intensidade(cs)
+    # Vigoroso equivale a 2× moderado na contagem OMS
     min_card_equiv=min_card*2 if intens=="vigorosa" else min_card
 
-    total=min_musc+min_card_equiv
-    st="insuf" if total<75 else ("parcial" if total<150 else ("ok" if total<=300 else "exce"))
+    if   min_card_equiv<75:  st_card="insuf"
+    elif min_card_equiv<150: st_card="parcial"
+    elif min_card_equiv<=300:st_card="ok"
+    else:                    st_card="exce"
 
     return {
-        "min_musc":min_musc,"freq_musc":freq_musc,
-        "min_card":min_card,"freq_card":freq_card,
-        "min_card_equiv":min_card_equiv,"intens":intens,
-        "total":total,"status":st,
-        "tipo_cardio":cardio_txt(cs),"tempo_cardio":tc_txt(ct)
+        # força
+        "freq_forca":     freq_forca,
+        "freq_forca_max": freq_forca_max,
+        "min_forca":      min_forca,
+        "tempo_forca":    tt_txt(ts),
+        "st_forca":       st_forca,
+        # cardio
+        "freq_card":      freq_card,
+        "min_card":       min_card,
+        "min_card_equiv": min_card_equiv,
+        "intens":         intens,
+        "st_card":        st_card,
+        "tipo_cardio":    cardio_txt(cs),
+        "tempo_cardio":   tc_txt(ct),
+        # legado — manter compatibilidade com função dicas()
+        "freq_musc": freq_forca,
+        "min_musc":  min_forca,
+        "total":     min_card_equiv,   # total cardio equiv (usado em dicas)
+        "status":    st_card,          # status cardio (usado em dicas)
     }
 
 def dicas(d):
     out=[]
+    positivos=[]  # cards de elogio — usados para preencher quando o perfil é bom
     obj=str(d.get("objetivo") or "").lower(); ex=str(d.get("exercicio") or "").lower()
     al=str(d.get("alimentacao") or "").lower(); es=f2(d.get("estresse")) or 0
     co=f2(d.get("compro")) or 0; ob=str(d.get("obstaculo") or "").lower()
     li=str(d.get("limitacao") or "").lower(); me=str(d.get("medicamento") or d.get("medicamentos") or "").lower()
     oms=oms_detalhado(d)
 
+    # ── COMPROMETIMENTO ───────────────────────────────────────────────────────
     if co>=8:
         out.append(("trofeu",AM,"Comprometimento excepcional!",
             f"Você declarou {int(co)}/10 — esse é o ingrediente mais raro na transformação. A maioria desiste por falta de comprometimento. Você já passou dessa etapa."))
@@ -208,34 +279,51 @@ def dicas(d):
         out.append(("musculo",VM,"Bom comprometimento!",
             f"Nível {int(co)}/10 — você está no caminho certo. Com o protocolo adequado os resultados aparecem em 4 a 6 semanas."))
 
+    # ── ESTRESSE ──────────────────────────────────────────────────────────────
     if es>=7:
         out.append(("raiva",VE,"Estresse alto interfere nos resultados",
             "Cortisol elevado dificulta a perda de gordura e prejudica a recuperação muscular. Seu protocolo vai considerar isso. Dica imediata: 7–8h de sono e 10 min de caminhada ao ar livre já fazem diferença."))
     elif es>=5:
         out.append(("aviso",LA,"Estresse moderado — fique de olho",
             f"Nível {int(es)}/10. Estresse crônico sabota resultados mesmo com treino correto. Priorize sono de qualidade e momentos de descanso ativo ao longo da semana."))
+    elif es<=3:
+        positivos.append(("sorriso",VM,"Estresse sob controle — grande vantagem",
+            f"Nível {int(es)}/10 de estresse. Cortisol baixo favorece a recuperação muscular, o sono e a queima de gordura. Continue cuidando do seu equilíbrio — isso acelera os resultados mais do que muita gente imagina."))
 
+    # ── ALIMENTAÇÃO ───────────────────────────────────────────────────────────
     if al in ["muito_ruim","ruim"]:
         out.append(("salada",VCL,"Comece pela proteína em cada refeição",
             "Não precisa contar calorias agora. Montar o prato com proteína primeiro (frango, ovo, peixe) reduz naturalmente o excesso calórico e protege a massa muscular durante o emagrecimento."))
     elif al=="media":
-        out.append(("salada",VM,"Alimentação razoável — um ajuste resolve",
+        out.append(("salada",AM,"Alimentação razoável — um ajuste resolve",
             "Foque em aumentar proteína e reduzir açúcar líquido (refrigerante, suco industrializado). Essas duas mudanças aceleram os resultados sem virar a rotina de cabeça pra baixo."))
+    elif al=="boa":
+        positivos.append(("salada",VM,"Alimentação em dia — continue assim",
+            "Sua rotina alimentar já é uma base sólida. Com o protocolo certo, a alimentação vai trabalhar junto com o treino para acelerar os resultados. Não precisa reinventar — só afinar os detalhes."))
 
+    # ── EXERCÍCIO / FORÇA ─────────────────────────────────────────────────────
     if ex=="nao":
         out.append(("correr",AZ,"Comece com 10 minutos — sério",
             "10 minutos de caminhada após o almoço já reduz glicemia, melhora disposição e cria o hábito. Seu protocolo vai progredir gradualmente, sem sobrecarga."))
     elif ex=="1x":
-        out.append(("correr",VM,"1–2x/semana é um ótimo ponto de partida",
+        out.append(("correr",VM,"1-2x/semana é um ótimo ponto de partida",
             "Seu protocolo vai evoluir para 3x com treinos de 30–40 min. Essa progressão dobra seus resultados sem aumentar muito o tempo dedicado."))
+    elif ex in ["3x","5x"]:
+        positivos.append(("halteres",VM,f"Consistência na musculação — isso é raro",
+            f"Você treina {ex_txt(ex)} — a maioria das pessoas não chega a isso. Essa base de força é o que vai fazer a diferença nos resultados do seu protocolo. Continue e o corpo vai responder."))
 
+    # ── CARDIO ────────────────────────────────────────────────────────────────
     if oms["min_card"]==0 and oms["status"] in ["insuf","parcial"]:
         out.append(("bike",VCL,"Adicione cardio 2x por semana",
             f"Você está com {oms['total']} min/semana. Duas sessões de 30 min de caminhada rápida ou bike já chegam perto da meta OMS de 150 min. Pequeno ajuste, grande resultado."))
+    elif oms["status"] in ["ok","exce"] and oms["min_card"]>0:
+        positivos.append(("bike",VM,f"Cardio acima da meta OMS — excelente",
+            f"Você faz {fc_txt(d.get('freq_cardio',''))} de {oms['tipo_cardio']} com sessões de {oms['tempo_cardio']} — {oms['min_card_equiv']} min/semana equivalentes. Isso coloca você acima da recomendação da OMS e é um diferencial real para os seus resultados."))
     elif oms["min_card"]>0 and oms["intens"]=="moderada":
         out.append(("bike",VM,f"Cardio: {oms['tipo_cardio']} — ótima escolha",
-            f"Você faz {oms['freq_card']}x por semana com sessões de {oms['tempo_cardio']}. Isso representa {oms['min_card']} min/semana. Manter essa consistência é fundamental para os resultados."))
+            f"Você faz {fc_txt(d.get('freq_cardio',''))} com sessões de {oms['tempo_cardio']}. Isso representa {oms['min_card']} min/semana. Manter essa consistência é fundamental para os resultados."))
 
+    # ── OBSTÁCULOS / SITUAÇÕES ESPECIAIS ─────────────────────────────────────
     if "tempo" in ob:
         out.append(("relogio",colors.HexColor("#7B1FA2"),"Falta de tempo — tem solução",
             "Treinos de 30 min 3x/semana superam qualquer treino de 1h esporádico. Seu protocolo foi desenhado para caber na vida real, não na vida ideal. Consistência supera duração."))
@@ -252,7 +340,14 @@ def dicas(d):
         out.append(("remedio",AZ,"Medicamentos considerados no protocolo",
             "Alguns medicamentos afetam metabolismo e recuperação. Seu protocolo será montado levando isso em conta para garantir progressão segura e eficiente."))
 
-    return out[:6]
+    # ── PREENCHER COM POSITIVOS SE POUCOS ALERTAS ─────────────────────────────
+    # Garante mínimo de 4 cards na página — completa com elogios se necessário
+    combinado = out + [p for p in positivos if p not in out]
+    if len(combinado) < 4:
+        # Card de perfil geral positivo como fallback
+        combinado.append(("trofeu",VM,"Perfil equilibrado — base ideal para evoluir",
+            "Seu diagnóstico mostra um perfil sólido: treino consistente, alimentação adequada e comprometimento alto. Seu protocolo vai partir dessa base e potencializar cada ponto forte que você já tem."))
+    return combinado[:6]
 
 # ── PRIMITIVAS ────────────────────────────────────────────────────────────────
 def bg_dark(c): c.setFillColor(PF); c.rect(0,0,W,H,fill=1,stroke=0)
@@ -407,16 +502,33 @@ def pag_bio(c,d):
     header_l(c,"1","Seu Diagnóstico","Análise completa dos seus dados biométricos")
     iv=d.get("imc") or calc_imc(d.get("peso"),d.get("altura"))
     ivf=f2(iv); CIMC=cor_imc(ivf); mt=meta(d); y=H-38*mm
-    # 4 cards
-    campos=[("balanca",safe(d.get("peso")),"kg","PESO ATUAL"),
-            ("regua",safe(d.get("altura")),"cm","ALTURA"),
-            ("bolo",safe(d.get("idade")),"anos","IDADE"),
-            ("alvo",safe(d.get("peso_obj")),"kg","OBJ. PESO")]
+    # 4 cards — cor da faixa de acordo com IMC/dados
+    # faixa: verde=bom, amarelo=atenção, laranja=ruim, vermelho=crítico
+    _peso_v  = f2(d.get("peso")); _alt_v = f2(d.get("altura"))
+    _pobj_v  = f2(d.get("peso_obj")); _ivf2 = f2(iv)
+    def _cor_peso():
+        if not _ivf2: return VM
+        if _ivf2<18.5: return AZ
+        if _ivf2<25:   return VM
+        if _ivf2<30:   return AM
+        if _ivf2<35:   return LA
+        return VE
+    def _cor_pobj():
+        if not _peso_v or not _pobj_v: return VM
+        diff=_peso_v-_pobj_v
+        if diff<=0: return VM          # já está no peso
+        if diff<=5: return AM          # meta próxima
+        if diff<=15: return LA         # meta distante
+        return VE                       # meta muito distante
+    campos=[("balanca",safe(d.get("peso")),"kg","PESO ATUAL",_cor_peso()),
+            ("regua",safe(d.get("altura")),"cm","ALTURA",VM),
+            ("bolo",safe(d.get("idade")),"anos","IDADE",VM),
+            ("alvo",safe(d.get("peso_obj")),"kg","OBJ. PESO",_cor_pobj())]
     cw=(W-40*mm)/4
-    for i,(em,val,unid,lbl) in enumerate(campos):
+    for i,(em,val,unid,lbl,cor_faixa) in enumerate(campos):
         cx=18*mm+i*(cw+1.3*mm); ch=30*mm
         card_l(c,cx,y-ch,cw,ch,fill=LC,r=3)
-        c.setFillColor(VM); c.rect(cx,y-3.5*mm,cw,3.5*mm,fill=1,stroke=0)
+        c.setFillColor(cor_faixa); c.rect(cx,y-3.5*mm,cw,3.5*mm,fill=1,stroke=0)
         draw_em(c,em,cx+cw/2-3.5*mm,y-5*mm,size=5.5)
         c.setFillColor(TD); c.setFont(FB,17); c.drawCentredString(cx+cw/2,y-18*mm,val)
         c.setFillColor(TM); c.setFont(FN,8); c.drawCentredString(cx+cw/2,y-23*mm,unid)
@@ -557,7 +669,8 @@ def pag_perfil(c,d):
         ("alvo","OBJETIVO",obj_txt(d.get("objetivo","")),f"Comprometimento: {int(co)}/10",VM),
         ("barras","PERFIL FÍSICO",class_imc(iv),f"IMC: {iv or '–'}",CIMC),
         ("halteres","ATIVIDADE FÍSICA",f"Musculação: {ex_txt(d.get('exercicio',''))}",f"Cardio: {fc_txt(d.get('freq_cardio',''))}",VM),
-        ("salada","ALIMENTAÇÃO",al_txt(d.get("alimentacao","")),f"Estresse: {int(es)}/10",LA),
+        ("salada","ALIMENTAÇÃO",al_txt(d.get("alimentacao","")),f"Estresse: {int(es)}/10",
+         {"muito_ruim":VE,"ruim":LA,"media":AM,"boa":VM}.get(str(d.get("alimentacao") or "").lower(),AM)),
     ]
     for i,(em,tit,val,det,cor) in enumerate(dados):
         col=i%2; row=i//2
@@ -618,7 +731,11 @@ def pag_dicas(c,d):
     else:
         for em,cor,titulo,desc in dc:
             n=max(2,len(desc)//58+1); hh=(15+n*5)*mm
-            card_l(c,18*mm,y-hh,W-36*mm,hh,fill=LC,r=3,borda=LB)
+            # bg levemente colorido de acordo com a cor da dica
+            _bg_map={VE:colors.HexColor("#FFF3F3"),LA:colors.HexColor("#FFF8E1"),
+                     AM:colors.HexColor("#FFFDE7"),VM:VT,VCL:VT,AZ:colors.HexColor("#E3F2FD")}
+            _bg=_bg_map.get(cor,LC)
+            card_l(c,18*mm,y-hh,W-36*mm,hh,fill=_bg,r=3,borda=cor)
             c.setFillColor(cor); c.roundRect(18*mm,y-hh,4*mm,hh,1.5*mm,fill=1,stroke=0)
             draw_em(c,em,26*mm,y-3*mm,size=5.5)
             c.setFillColor(cor); c.setFont(FB,10.5); c.drawString(35*mm,y-8*mm,titulo)
@@ -629,94 +746,133 @@ def pag_dicas(c,d):
 # ── PÁG 6: LAUDO CARDIO + OMS (LIGHT) ────────────────────────────────────────
 def pag_oms(c,d):
     bg_light(c)
-    header_l(c,"5","Laudo de Atividade Física","Análise detalhada do seu cardio vs. recomendações da OMS")
-    oms=oms_detalhado(d); tot=oms["total"]; st=oms["status"]
-    cst={"insuf":VE,"parcial":LA,"ok":VM,"exce":VM}.get(st,VM)
-    lbl_st={"insuf":"Nível Insuficiente","parcial":"Quase lá!","ok":"Dentro da Meta OMS","exce":"Acima da Meta OMS"}.get(st,"")
-    em_st={"insuf":"aviso","parcial":"fogo","ok":"ok","exce":"trofeu"}.get(st,"ok")
-    bgst={"insuf":colors.HexColor("#FFF3F3"),"parcial":colors.HexColor("#FFF8E1"),"ok":VT,"exce":VT}.get(st,VT)
+    header_l(c,"5","Laudo de Atividade Física","Análise detalhada do seu nível de atividade vs. recomendações da OMS")
+    oms=oms_detalhado(d)
     y=H-38*mm
 
-    # ── BREAKDOWN CARDIO + MUSCULAÇÃO ─────────────────────────────────────────
-    # Título da seção de breakdown
-    c.setFillColor(TD); c.setFont(FB,11); c.drawString(18*mm,y,"DETALHAMENTO DA SUA ATIVIDADE:")
-    y-=7*mm
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOCO 1 — FORTALECIMENTO MUSCULAR
+    # ══════════════════════════════════════════════════════════════════════════
+    c.setFillColor(TD); c.setFont(FB,11)
+    c.drawString(18*mm,y,"FORTALECIMENTO MUSCULAR (FORÇA)")
+    y-=6*mm
 
-    # 3 cards breakdown lado a lado
-    bw3=(W-42*mm)/3; bh3=32*mm
-    breakdown=[
-        ("halteres","MUSCULAÇÃO",f"{oms['min_musc']} min/sem",
-         f"{oms['freq_musc']}x/sem · {tt_txt(d.get('tempo_treino',''))}",VM),
-        ("bike","CARDIO",f"{oms['min_card']} min/sem",
-         f"{oms['freq_card']}x/sem · {oms['tempo_cardio']}",AZUL_B),
-        ("trofeu","TOTAL EQUIVALENTE",f"{oms['total']} min/sem",
-         f"{'Intensidade vigorosa (2x)' if oms['intens']=='vigorosa' else 'Intensidade moderada'}",cst),
+    # Cores e textos por status de força
+    sf=oms["st_forca"]
+    cfg_f={
+        "nao":  (VE, colors.HexColor("#FFF3F3"), "aviso",  "Sem treino de força",
+                 "Você não pratica musculação atualmente. A OMS recomenda exercícios de fortalecimento muscular em pelo menos 2 dias por semana para adultos."),
+        "insuf":(LA, colors.HexColor("#FFF8E1"), "aviso",  "Abaixo da recomendação OMS",
+                 "Você pratica musculação 1 dia por semana. A OMS recomenda pelo menos 2 dias. Adicionar mais 1 sessão semanal já coloca você dentro da meta."),
+        "ok":   (VM, VT,                         "ok",     "Dentro da recomendação OMS",
+                 f"Você pratica musculação {ex_txt(d.get('exercicio',''))} — acima da meta mínima da OMS de 2 dias. Excelente consistência!"),
+    }.get(sf, (TS, LC, "ok", "–", "–"))
+    cor_f, bg_f, em_f, lbl_f, msg_f = cfg_f
+
+    # Card principal de força — 2 colunas: métricas | status
+    ch_f=38*mm
+    card_l(c,18*mm,y-ch_f,W-36*mm,ch_f,fill=bg_f,r=4,borda=cor_f)
+    c.setStrokeColor(cor_f); c.setLineWidth(2.5); c.line(18*mm,y,W-18*mm,y)
+
+    # coluna esquerda: métricas
+    col_w=(W-36*mm)*0.55
+    draw_em(c,em_f,22*mm,y-3*mm,size=6)
+    c.setFillColor(cor_f); c.setFont(FB,12); c.drawString(32*mm,y-9*mm,lbl_f)
+
+    # dias/semana em destaque
+    c.setFillColor(cor_f); c.setFont(FB,36)
+    dias_txt=str(oms["freq_forca"]) if oms["freq_forca"]>0 else "0"
+    c.drawString(24*mm,y-29*mm,dias_txt)
+    c.setFillColor(TM); c.setFont(FN,9); c.drawString(37*mm,y-24*mm,"dias/semana")
+    c.setFillColor(TS); c.setFont(FN,8); c.drawString(37*mm,y-30*mm,f"Sessões de {oms['tempo_forca']}" if oms['freq_forca']>0 else "Nenhuma sessão registrada")
+
+    # barra: dias praticados vs meta OMS (2 dias)
+    barra(c,24*mm,y-35*mm,(W-36*mm)*0.5,4,min(oms["freq_forca_max"]/2.0,1.0),cor_f,LCG)
+
+    # divisor vertical
+    xdiv=18*mm+col_w
+    c.setStrokeColor(LB); c.setLineWidth(0.5)
+    c.line(xdiv,y-6*mm,xdiv,y-ch_f+4*mm)
+
+    # coluna direita: mensagem
+    wrap(c,msg_f,xdiv+4*mm,y-8*mm,(W-36*mm)*0.42,size=9,cor=TD,leading=12)
+
+    y-=ch_f+8*mm
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOCO 2 — CARDIO
+    # ══════════════════════════════════════════════════════════════════════════
+    c.setFillColor(TD); c.setFont(FB,11)
+    c.drawString(18*mm,y,"ATIVIDADE AERÓBICA (CARDIO)")
+    y-=6*mm
+
+    sc=oms["st_card"]
+    cfg_c={
+        "insuf": (VE, colors.HexColor("#FFF3F3"), "aviso",  "Nível Insuficiente"),
+        "parcial":(LA,colors.HexColor("#FFF8E1"), "fogo",   "Quase lá!"),
+        "ok":    (VM, VT,                         "ok",     "Dentro da Meta OMS"),
+        "exce":  (VM, VT,                         "trofeu", "Acima da Meta OMS"),
+    }.get(sc,(TS,LC,"ok","–"))
+    cor_c, bg_c, em_c, lbl_c = cfg_c
+
+    msgs_c={
+        "insuf": "Você está abaixo das recomendações de cardio. Seu protocolo vai incluir orientações para aumentar gradualmente o volume aeróbico de forma segura e progressiva.",
+        "parcial":"Você está quase lá! Com pequenos ajustes — mais uma sessão por semana ou sessões um pouco mais longas — você atinge os 150 min/semana recomendados pela OMS.",
+        "ok":    "Parabéns! Seu volume de cardio está dentro da meta OMS. Seu protocolo vai potencializar ainda mais esses resultados.",
+        "exce":  "Excelente! Você supera as recomendações de cardio. Seu protocolo vai garantir recuperação adequada e maximizar os resultados.",
+    }
+
+    # 2 cards lado a lado: cardio praticado | meta OMS
+    bw2=(W-40*mm)/2; bh3=32*mm
+    tipo_det = f"{fc_txt(d.get('freq_cardio',''))} · {oms['tempo_cardio']}" + (f"\n{oms['tipo_cardio']}" if oms['min_card']>0 else "")
+    intens_det = f"{'Vigoroso (×2 na OMS)' if oms['intens']=='vigorosa' else 'Moderado (×1 na OMS)'}" if oms['min_card']>0 else "Sem cardio registrado"
+    cards2=[
+        ("bike",   "CARDIO PRATICADO",
+         f"{oms['min_card']} min/sem" if oms['min_card']>0 else "0 min/sem",
+         f"{fc_txt(d.get('freq_cardio',''))} · {oms['tempo_cardio']}" + (f"  ·  {oms['tipo_cardio']}" if oms['min_card']>0 else ""),
+         AZUL_B, AZUL_CARD),
+        ("alvo",   "META OMS",
+         "150–300 min/sem",
+         "Mínimo recomendado para adultos saudáveis",
+         VM, VT),
     ]
-    for i,(em,tit,val,det,cor) in enumerate(breakdown):
-        bx=18*mm+i*(bw3+3*mm)
-        card_l(c,bx,y-bh3,bw3,bh3,fill=LC if i<2 else colors.HexColor("#F9FBE7") if st in ["ok","exce"] else colors.HexColor("#FFF3F3"),r=3,borda=cor)
-        c.setFillColor(cor); c.roundRect(bx,y-8*mm,bw3,8*mm,2*mm,fill=1,stroke=0)
+    for i,(em,tit,val,det,cor,bg_c2) in enumerate(cards2):
+        bx=18*mm+i*(bw2+4*mm)
+        card_l(c,bx,y-bh3,bw2,bh3,fill=bg_c2,r=3,borda=cor)
+        c.setFillColor(cor); c.roundRect(bx,y-8*mm,bw2,8*mm,2*mm,fill=1,stroke=0)
         draw_em(c,em,bx+3*mm,y-1*mm,size=5.5)
-        c.setFillColor(BR); c.setFont(FB,8); c.drawString(bx+12*mm,y-6*mm,tit)
-        c.setFillColor(cor); c.setFont(FB,18); c.drawCentredString(bx+bw3/2,y-20*mm,val)
-        wrap(c,det,bx+4*mm,y-23*mm,bw3-8*mm,size=7.5,cor=TM,leading=10)
-    y-=bh3+6*mm
+        c.setFillColor(BR); c.setFont(FB,8); c.drawString(bx+13*mm,y-6*mm,tit)
+        c.setFillColor(cor); c.setFont(FB,17); c.drawCentredString(bx+bw2/2,y-19*mm,val)
+        wrap(c,det,bx+4*mm,y-23*mm,bw2-8*mm,size=7.5,cor=TM,leading=10)
+    y-=bh3+4*mm
 
-    # card tipo de cardio
-    if oms["min_card"]>0:
-        card_l(c,18*mm,y-14*mm,W-36*mm,15*mm,fill=AZUL_CARD,r=3,borda=AZUL_B)
-        c.setFillColor(AZUL_B); c.rect(18*mm,y-14*mm,4*mm,15*mm,fill=1,stroke=0)
-        draw_em(c,"bike",26*mm,y-2*mm,size=5)
-        c.setFillColor(AZUL_B); c.setFont(FB,9); c.drawString(34*mm,y-6*mm,"TIPO DE CARDIO PRATICADO:")
-        c.setFillColor(TD); c.setFont(FN,9.5); c.drawString(34*mm,y-11*mm,f"{oms['tipo_cardio']}")
-        y-=18*mm
-    else:
-        card_l(c,18*mm,y-14*mm,W-36*mm,15*mm,fill=colors.HexColor("#FFF3F3"),r=3,borda=VE)
-        c.setFillColor(VE); c.rect(18*mm,y-14*mm,4*mm,15*mm,fill=1,stroke=0)
-        draw_em(c,"aviso",26*mm,y-2*mm,size=5)
-        c.setFillColor(VE); c.setFont(FB,9); c.drawString(34*mm,y-6*mm,"CARDIO NÃO INFORMADO")
-        c.setFillColor(TD); c.setFont(FN,9.5); c.drawString(34*mm,y-11*mm,"Nenhuma atividade cardiovascular registrada.")
-        y-=18*mm
-
-    # ── STATUS GERAL OMS ──────────────────────────────────────────────────────
-    y-=4*mm
-    ch_st=46*mm
-    card_l(c,18*mm,y-ch_st,W-36*mm,ch_st,fill=bgst,r=4,borda=cst)
-    c.setStrokeColor(cst); c.setLineWidth(2.5); c.line(18*mm,y,18*mm+W-36*mm,y)
-    # emoji + label no topo
-    draw_em(c,em_st,22*mm,y-3*mm,size=6)
-    c.setFillColor(cst); c.setFont(FB,13); c.drawString(32*mm,y-9*mm,lbl_st)
-    # número grande centralizado
-    c.setFillColor(cst); c.setFont(FB,44); c.drawCentredString(W/2,y-30*mm,str(tot))
-    # texto abaixo do número — dentro do card
-    c.setFillColor(TM); c.setFont(FN,10); c.drawCentredString(W/2,y-38*mm,"min/semana de atividade")
-    c.setFillColor(TS); c.setFont(FN,8); c.drawCentredString(W/2,y-ch_st+5*mm,"OMS recomenda mínimo 150 min/semana")
-    y-=ch_st+6*mm
-
-    # barras comparativas — texto dentro do card
-    card_l(c,18*mm,y-30*mm,W-36*mm,32*mm,fill=LC,r=3)
-    c.setFillColor(TM); c.setFont(FN,9.5); c.drawString(24*mm,y-7*mm,"Você")
-    barra(c,50*mm,y-12*mm,W-90*mm,5,min(tot/300.0,1.0),cst,LCG)
-    c.setFillColor(TD); c.setFont(FB,9); c.drawString(W-34*mm,y-9.5*mm,f"{tot} min")
-    c.setFillColor(TM); c.setFont(FN,9.5); c.drawString(24*mm,y-20*mm,"Meta OMS")
-    barra(c,50*mm,y-25*mm,W-90*mm,5,150/300.0,VM,LCG)
-    c.setFillColor(TD); c.setFont(FB,9); c.drawString(W-40*mm,y-22.5*mm,"150 min")
-    y-=36*mm
-
-    # mensagem personalizada
-    msgs={"insuf":"Você está abaixo das recomendações. Seu protocolo vai aumentar gradualmente o volume de treino e incluir orientações de cardio de forma segura.",
-          "parcial":"Você está quase lá! Com pequenos ajustes no cardio você chega facilmente aos 150 min/semana com o protocolo certo.",
-          "ok":"Parabéns! Você já está dentro da meta OMS. Seu protocolo vai potencializar ainda mais seus resultados.",
-          "exce":"Excelente! Você supera as recomendações. Seu protocolo vai garantir recuperação adequada e maximizar resultados."}
-    card_l(c,18*mm,y-20*mm,W-36*mm,22*mm,fill=VT,r=3,borda=LB)
-    c.setFillColor(VM); c.rect(18*mm,y-20*mm,4*mm,22*mm,fill=1,stroke=0)
-    draw_em(c,"brilho",26*mm,y-3.5*mm,size=5.5)
-    wrap(c,msgs.get(st,""),35*mm,y-5*mm,W-58*mm,size=10,cor=TD,leading=13)
+    # barra comparativa cardio
+    y-=3*mm
+    card_l(c,18*mm,y-22*mm,W-36*mm,23*mm,fill=LC,r=3)
+    c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-6*mm,"Você (equiv.)")
+    barra(c,58*mm,y-11*mm,W-86*mm,4.5,min(oms["min_card_equiv"]/300.0,1.0),cor_c,LCG)
+    c.setFillColor(TD); c.setFont(FB,8.5); c.drawString(W-26*mm,y-9.5*mm,f"{oms['min_card_equiv']} min")
+    c.setFillColor(TM); c.setFont(FN,9); c.drawString(24*mm,y-17*mm,"Meta OMS")
+    barra(c,58*mm,y-22*mm,W-86*mm,4.5,150/300.0,VM,LCG)
+    c.setFillColor(TD); c.setFont(FB,8.5); c.drawString(W-32*mm,y-20*mm,"150 min")
     y-=26*mm
 
-    # cards estresse e comprometimento — com faixa 8mm
+    # mensagem personalizada de cardio
+    card_l(c,18*mm,y-18*mm,W-36*mm,19*mm,fill=bg_c,r=3,borda=cor_c)
+    c.setFillColor(cor_c); c.rect(18*mm,y-18*mm,4*mm,19*mm,fill=1,stroke=0)
+    draw_em(c,em_c,26*mm,y-3*mm,size=5)
+    c.setFillColor(cor_c); c.setFont(FB,9); c.drawString(35*mm,y-5.5*mm,lbl_c)
+    wrap(c,msgs_c.get(sc,""),35*mm,y-9.5*mm,W-58*mm,size=8.5,cor=TD,leading=11)
+    y-=22*mm
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLOCO 3 — ESTRESSE E COMPROMETIMENTO (mantido)
+    # ══════════════════════════════════════════════════════════════════════════
     es=f2(d.get("estresse")) or 0; co=f2(d.get("compro")) or 0
     cw2=(W-40*mm)/2
+    # garantir que os cards não saiam da página (mín: rodapé 10mm + margem 5mm + altura card 44mm)
+    y_min_cards=10*mm+5*mm+44*mm
+    if y<y_min_cards: y=y_min_cards
     me2={(1,3):("Estresse Baixo","Favorece recuperação e consistência nos treinos."),
          (4,6):("Estresse Moderado","Atenção. Seu protocolo vai incluir orientações de recuperação."),
          (7,8):("Estresse Elevado","Impacta resultados. Progressão adaptada para esse cenário."),
@@ -732,7 +888,6 @@ def pag_oms(c,d):
     for i,(val,tit,desc,corb) in enumerate([(es,te,de,LA),(co,tc,dc2,VM)]):
         cx=18*mm+i*(cw2+4*mm); ch2=44*mm
         card_l(c,cx,y-ch2,cw2,ch2,fill=LC,r=3,borda=LB)
-        # faixa 8mm
         c.setFillColor(corb); c.roundRect(cx,y-8*mm,cw2,8*mm,2*mm,fill=1,stroke=0)
         c.setFillColor(BR); c.setFont(FB,9.5); c.drawCentredString(cx+cw2/2,y-5.5*mm,tit)
         c.setFillColor(corb); c.setFont(FB,26); c.drawString(cx+4*mm,y-24*mm,f"{int(val)}/10")
@@ -748,15 +903,7 @@ def pag_app(c,d):
     nome=d.get("nome") or "você"; y=H-38*mm
     c.setFillColor(TD); c.setFont(FB,14); c.drawCentredString(W/2,y,f"{nome}, tudo na palma da mão:")
     y-=9*mm
-    app1=os.path.join(BASE_DIR,"app_print1.png"); app2=os.path.join(BASE_DIR,"app_print2.png")
-    if os.path.exists(app1) or os.path.exists(app2):
-        aw=38*mm; ah=65*mm; gap=6*mm
-        ax1=W/2-(aw*2+gap)/2; ax2=ax1+aw+gap; ay=y
-        if os.path.exists(app1): c.drawImage(app1,ax1,ay-ah,width=aw,height=ah,preserveAspectRatio=True,mask="auto")
-        if os.path.exists(app2): c.drawImage(app2,ax2,ay-ah,width=aw,height=ah,preserveAspectRatio=True,mask="auto")
-        c.setFillColor(TS); c.setFont(FN,8); c.drawCentredString(W/2,ay-ah-4*mm,"Interface real do app MFIT Personal")
-        y=ay-ah-9*mm
-    else: y-=4*mm
+    y-=4*mm
     difs=[("halteres","Protocolo personalizado","Treinos montados do zero pelo Luis, exclusivamente para o seu perfil e objetivo."),
           ("camera","Vídeos de todos os exercícios","Cada exercício com vídeo demonstrativo do próprio Luis para garantir execução correta."),
           ("chat","Suporte direto com o Luis","Atendimento personalizado via app e WhatsApp durante todo o protocolo."),
