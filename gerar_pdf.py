@@ -1,5 +1,6 @@
 import io, os, sys
 from datetime import datetime
+from urllib.parse import quote
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -14,6 +15,19 @@ W, H = A4
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EMOJI_DIR = os.path.join(BASE_DIR, "emojis")
 TOTAL_PAGES = 9
+
+# Número do WhatsApp do Luis, usado em todos os botões de contato do PDF
+WHATS_NUM = "5545991232755"
+
+def whats_link(dados=None, mensagem=None):
+    """Monta o link wa.me já com a mensagem preenchida, personalizada com o nome quando disponível."""
+    nome = (dados or {}).get("nome") or ""
+    if mensagem is None:
+        if nome:
+            mensagem = f"Olá Luis! Me chamo {nome}, acabei de ver meu diagnóstico e quero saber mais sobre a consultoria! 😊"
+        else:
+            mensagem = "Olá Luis! Acabei de ver meu diagnóstico e quero saber mais sobre a consultoria! 😊"
+    return f"https://wa.me/{WHATS_NUM}?text={quote(mensagem)}"
 
 # ── EMOJIS EMBUTIDOS (base64 PNG) ────────────────────────────────────────────
 import base64, io as _io
@@ -303,58 +317,58 @@ def dicas(d):
     # ── COMPROMETIMENTO ───────────────────────────────────────────────────────
     if co>=8:
         out.append(("trofeu",AM,"Comprometimento excepcional!",
-            f"Você declarou {int(co)}/10 — esse é o ingrediente mais raro na transformação. A maioria desiste por falta de comprometimento. Você já passou dessa etapa."))
+            f"Você declarou {int(co)}/10. Esse é o ingrediente mais raro na transformação. A maioria desiste por falta de comprometimento. Você já passou dessa etapa."))
     elif co>=6:
         out.append(("musculo",VM,"Bom comprometimento!",
-            f"Nível {int(co)}/10 — você está no caminho certo. Com o protocolo adequado os resultados aparecem em 4 a 6 semanas."))
+            f"Nível {int(co)}/10. Você está no caminho certo. Com o protocolo adequado os resultados aparecem em 4 a 6 semanas."))
 
     # ── ESTRESSE ──────────────────────────────────────────────────────────────
     if es>=7:
         out.append(("raiva",VE,"Estresse alto interfere nos resultados",
             "Cortisol elevado dificulta a perda de gordura e prejudica a recuperação muscular. Seu protocolo vai considerar isso. Dica imediata: 7–8h de sono e 10 min de caminhada ao ar livre já fazem diferença."))
     elif es>=5:
-        out.append(("aviso",LA,"Estresse moderado — fique de olho",
+        out.append(("aviso",LA,"Estresse moderado, fique de olho",
             f"Nível {int(es)}/10. Estresse crônico sabota resultados mesmo com treino correto. Priorize sono de qualidade e momentos de descanso ativo ao longo da semana."))
     elif es<=3:
-        positivos.append(("sorriso",VM,"Estresse sob controle — grande vantagem",
-            f"Nível {int(es)}/10 de estresse. Cortisol baixo favorece a recuperação muscular, o sono e a queima de gordura. Continue cuidando do seu equilíbrio — isso acelera os resultados mais do que muita gente imagina."))
+        positivos.append(("sorriso",VM,"Estresse sob controle: grande vantagem",
+            f"Nível {int(es)}/10 de estresse. Cortisol baixo favorece a recuperação muscular, o sono e a queima de gordura. Continue cuidando do seu equilíbrio, isso acelera os resultados mais do que muita gente imagina."))
 
     # ── ALIMENTAÇÃO ───────────────────────────────────────────────────────────
     if al in ["muito_ruim","ruim"]:
         out.append(("salada",VCL,"Comece pela proteína em cada refeição",
             "Não precisa contar calorias agora. Montar o prato com proteína primeiro (frango, ovo, peixe) reduz naturalmente o excesso calórico e protege a massa muscular durante o emagrecimento."))
     elif al=="media":
-        out.append(("salada",AM,"Alimentação razoável — um ajuste resolve",
+        out.append(("salada",AM,"Alimentação razoável: um ajuste resolve",
             "Foque em aumentar proteína e reduzir açúcar líquido (refrigerante, suco industrializado). Essas duas mudanças aceleram os resultados sem virar a rotina de cabeça pra baixo."))
     elif al=="boa":
-        positivos.append(("salada",VM,"Alimentação em dia — continue assim",
-            "Sua rotina alimentar já é uma base sólida. Com o protocolo certo, a alimentação vai trabalhar junto com o treino para acelerar os resultados. Não precisa reinventar — só afinar os detalhes."))
+        positivos.append(("salada",VM,"Alimentação em dia, continue assim",
+            "Sua rotina alimentar já é uma base sólida. Com o protocolo certo, a alimentação vai trabalhar junto com o treino para acelerar os resultados. Não precisa reinventar, só afinar os detalhes."))
 
     # ── EXERCÍCIO / FORÇA ─────────────────────────────────────────────────────
     if ex=="nao":
-        out.append(("correr",AZ,"Comece com 10 minutos — sério",
+        out.append(("correr",AZ,"Comece com 10 minutos, sério",
             "10 minutos de caminhada após o almoço já reduz glicemia, melhora disposição e cria o hábito. Seu protocolo vai progredir gradualmente, sem sobrecarga."))
     elif ex=="1x":
         out.append(("correr",VM,"1-2x/semana é um ótimo ponto de partida",
             "Seu protocolo vai evoluir para 3x com treinos de 30–40 min. Essa progressão dobra seus resultados sem aumentar muito o tempo dedicado."))
     elif ex in ["3x","5x"]:
-        positivos.append(("halteres",VM,f"Consistência na musculação — isso é raro",
-            f"Você treina {ex_txt(ex)} — a maioria das pessoas não chega a isso. Essa base de força é o que vai fazer a diferença nos resultados do seu protocolo. Continue e o corpo vai responder."))
+        positivos.append(("halteres",VM,f"Consistência na musculação: isso é raro",
+            f"Você treina {ex_txt(ex)}, a maioria das pessoas não chega a isso. Essa base de força é o que vai fazer a diferença nos resultados do seu protocolo. Continue e o corpo vai responder."))
 
     # ── CARDIO ────────────────────────────────────────────────────────────────
     if oms["min_card"]==0 and oms["status"] in ["insuf","parcial"]:
         out.append(("bike",VCL,"Adicione cardio 2x por semana",
             f"Você está com {oms['total']} min/semana. Duas sessões de 30 min de caminhada rápida ou bike já chegam perto da meta OMS de 150 min. Pequeno ajuste, grande resultado."))
     elif oms["status"] in ["ok","exce"] and oms["min_card"]>0:
-        positivos.append(("bike",VM,f"Cardio acima da meta OMS — excelente",
-            f"Você faz {fc_txt(d.get('freq_cardio',''))} de {oms['tipo_cardio']} com sessões de {oms['tempo_cardio']} — {oms['min_card_equiv']} min/semana equivalentes. Isso coloca você acima da recomendação da OMS e é um diferencial real para os seus resultados."))
+        positivos.append(("bike",VM,f"Cardio acima da meta OMS: excelente",
+            f"Você faz {fc_txt(d.get('freq_cardio',''))} de {oms['tipo_cardio']} com sessões de {oms['tempo_cardio']}, totalizando {oms['min_card_equiv']} min/semana equivalentes. Isso coloca você acima da recomendação da OMS e é um diferencial real para os seus resultados."))
     elif oms["min_card"]>0 and oms["intens"]=="moderada":
-        out.append(("bike",VM,f"Cardio: {oms['tipo_cardio']} — ótima escolha",
+        out.append(("bike",VM,f"Cardio: {oms['tipo_cardio']}, ótima escolha",
             f"Você faz {fc_txt(d.get('freq_cardio',''))} com sessões de {oms['tempo_cardio']}. Isso representa {oms['min_card']} min/semana. Manter essa consistência é fundamental para os resultados."))
 
     # ── OBSTÁCULOS / SITUAÇÕES ESPECIAIS ─────────────────────────────────────
     if "tempo" in ob:
-        out.append(("relogio",colors.HexColor("#7B1FA2"),"Falta de tempo — tem solução",
+        out.append(("relogio",colors.HexColor("#7B1FA2"),"Falta de tempo tem solução",
             "Treinos de 30 min 3x/semana superam qualquer treino de 1h esporádico. Seu protocolo foi desenhado para caber na vida real, não na vida ideal. Consistência supera duração."))
 
     if obj=="pos_parto" or "parto" in obj:
@@ -362,7 +376,7 @@ def dicas(d):
             "O abdômen pós-parto passa por mudanças reais (diástase). Exercícios genéricos podem piorar a condição. Seu protocolo vai incluir exercícios específicos e seguros para essa fase."))
 
     if li and li not in ["nao","nenhuma","","–","nao informado"]:
-        out.append(("aviso",LA,"Limitação física — protocolo adaptado",
+        out.append(("aviso",LA,"Limitação física: protocolo adaptado",
             "Sua limitação foi registrada e será considerada. Treinar com compensação postural aumenta risco de lesão. Seu protocolo vai respeitar esses limites."))
 
     if me and me not in ["nao","nenhum","","–","nao informado"]:
@@ -374,7 +388,7 @@ def dicas(d):
     combinado = out + [p for p in positivos if p not in out]
     if len(combinado) < 4:
         # Card de perfil geral positivo como fallback
-        combinado.append(("trofeu",VM,"Perfil equilibrado — base ideal para evoluir",
+        combinado.append(("trofeu",VM,"Perfil equilibrado: base ideal para evoluir",
             "Seu diagnóstico mostra um perfil sólido: treino consistente, alimentação adequada e comprometimento alto. Seu protocolo vai partir dessa base e potencializar cada ponto forte que você já tem."))
     return combinado[:6]
 
@@ -421,17 +435,17 @@ def header_l(c,sec,titulo,subtit):
     c.setFillColor(TD); c.setFont(FB,22); c.drawString(18*mm,H-24*mm,titulo)
     c.setFillColor(TM); c.setFont(FN,10); c.drawString(18*mm,H-30*mm,subtit)
 
-def btn_desbloquear(c,y):
+def btn_desbloquear(c,y,dados=None,texto="Falar com o Luis no WhatsApp"):
     # Garante que o botão não sobreponha o rodapé (10mm) + margem (5mm)
     y_min=18*mm
     if y-15*mm < y_min: y=y_min+15*mm
     bw=W-36*mm; bh=15*mm
     c.setFillColor(VM); c.roundRect(18*mm,y-bh,bw,bh,4*mm,fill=1,stroke=0)
     c.setStrokeColor(VN2); c.setLineWidth(1.5); c.roundRect(18*mm,y-bh,bw,bh,4*mm,fill=0,stroke=1)
-    draw_em(c,"cadeado",22*mm,y-1.5*mm,size=5)
+    draw_em(c,"chat",22*mm,y-1.5*mm,size=5)
     c.setFillColor(BR); c.setFont(FB,12)
-    c.drawCentredString(W/2+3*mm,y-bh/2-12*0.35,"Desbloquear minha consultoria")
-    c.linkAbsolute("",  "oferta", (18*mm, y-bh, 18*mm+bw, y))
+    c.drawCentredString(W/2+3*mm,y-bh/2-12*0.35,texto)
+    c.linkURL(whats_link(dados), (18*mm, y-bh, 18*mm+bw, y), relative=0)
 
 # ── PÁG 1: CAPA (DARK) ────────────────────────────────────────────────────────
 def pag_capa(c,d):
@@ -493,7 +507,7 @@ def pag_capa(c,d):
     # seções
     y_s=cy-ch-8*mm
     c.setFillColor(CS); c.setFont(FB,8); c.drawString(18*mm,y_s,"ESTE DOCUMENTO CONTÉM:")
-    items=[("alvo","Análise biométrica completa — IMC e composição corporal"),
+    items=[("alvo","Análise biométrica completa: IMC e composição corporal"),
            ("bike","Análise detalhada de cardio vs. recomendações da OMS"),
            ("brilho","Dicas práticas personalizadas para a sua rotina"),
            ("cadeado","Planos com preços e link direto de acesso")]
@@ -676,8 +690,8 @@ def pag_hab(c,d):
         ("alvo","Objetivo",obj_txt(d.get("objetivo",""))),
         ("halteres","Musculação",ex_txt(d.get("exercicio",""))),
         ("relogio","Duração do treino",tt_txt(d.get("tempo_treino",""))),
-        ("bike","Cardio — frequência",fc_txt(d.get("freq_cardio",""))),
-        ("bike","Cardio — tipo e duração",f"{cardio_txt(d.get('cardio',''))}  ·  {tc_txt(d.get('tempo_cardio',''))}"),
+        ("bike","Cardio: frequência",fc_txt(d.get("freq_cardio",""))),
+        ("bike","Cardio: tipo e duração",f"{cardio_txt(d.get('cardio',''))}  ·  {tc_txt(d.get('tempo_cardio',''))}"),
         ("salada","Alimentação",al_txt(d.get("alimentacao",""))),
         ("aviso","Principais obstáculos",ob_txt(d.get("obstaculo",""))),
         ("aviso","Limitações físicas",safe(d.get("limitacao"))),
@@ -747,7 +761,7 @@ def pag_perfil(c,d):
     draw_em(c,"medico",22*mm,yn-2.5*mm,size=5)
     wrap(c,"Este diagnóstico não substitui consulta médica. Ele organiza os sinais do seu perfil para você entender por onde começar.",
          31*mm,yn-3*mm,W-52*mm,size=9,cor=TM,leading=11)
-    btn_desbloquear(c,yn-20*mm)
+    btn_desbloquear(c,yn-20*mm,dados=d)
     rodape_l(c,4); c.showPage()
 
 # ── PÁG 5: DICAS (LIGHT) ──────────────────────────────────────────────────────
@@ -778,7 +792,7 @@ def pag_dicas(c,d):
             draw_em(c,em,26*mm,y-3*mm,size=5.5)
             c.setFillColor(cor); c.setFont(FB,10.5); c.drawString(35*mm,y-8*mm,titulo)
             wrap(c,desc,35*mm,y-13*mm,W-58*mm,size=9.5,cor=TD,leading=12); y-=hh+3.5*mm
-    btn_desbloquear(c,y-5*mm)
+    btn_desbloquear(c,y-5*mm,dados=d)
     rodape_l(c,5); c.showPage()
 
 # ── PÁG 6: LAUDO CARDIO + OMS (LIGHT) ────────────────────────────────────────
@@ -803,7 +817,7 @@ def pag_oms(c,d):
         "insuf":(LA, colors.HexColor("#FFF8E1"), "aviso",  "Abaixo da recomendação OMS",
                  "Você pratica musculação 1 dia por semana. A OMS recomenda pelo menos 2 dias. Adicionar mais 1 sessão semanal já coloca você dentro da meta."),
         "ok":   (VM, VT,                         "ok",     "Dentro da recomendação OMS",
-                 f"Você pratica musculação {ex_txt(d.get('exercicio',''))} — acima da meta mínima da OMS de 2 dias. Excelente consistência!"),
+                 f"Você pratica musculação {ex_txt(d.get('exercicio',''))}, acima da meta mínima da OMS de 2 dias. Excelente consistência!"),
     }.get(sf, (TS, LC, "ok", "–", "–"))
     cor_f, bg_f, em_f, lbl_f, msg_f = cfg_f
 
@@ -855,7 +869,7 @@ def pag_oms(c,d):
 
     msgs_c={
         "insuf": "Você está abaixo das recomendações de cardio. Seu protocolo vai incluir orientações para aumentar gradualmente o volume aeróbico de forma segura e progressiva.",
-        "parcial":"Você está quase lá! Com pequenos ajustes — mais uma sessão por semana ou sessões um pouco mais longas — você atinge os 150 min/semana recomendados pela OMS.",
+        "parcial":"Você está quase lá! Com pequenos ajustes, mais uma sessão por semana ou sessões um pouco mais longas, você atinge os 150 min/semana recomendados pela OMS.",
         "ok":    "Parabéns! Seu volume de cardio está dentro da meta OMS. Seu protocolo vai potencializar ainda mais esses resultados.",
         "exce":  "Excelente! Você supera as recomendações de cardio. Seu protocolo vai garantir recuperação adequada e maximizar os resultados.",
     }
@@ -867,7 +881,7 @@ def pag_oms(c,d):
     cards2=[
         ("bike",   "CARDIO PRATICADO",
          f"{oms['min_card']} min/sem" if oms['min_card']>0 else "0 min/sem",
-         f"{fc_txt(d.get('freq_cardio',''))} · {oms['tempo_cardio']}" + (f"  ·  {oms['tipo_cardio']}" if oms['min_card']>0 else "") + ("\nIntensidade vigorosa — equivale a 2× na OMS" if oms['intens']=='vigorosa' and oms['min_card']>0 else ""),
+         f"{fc_txt(d.get('freq_cardio',''))} · {oms['tempo_cardio']}" + (f"  ·  {oms['tipo_cardio']}" if oms['min_card']>0 else "") + ("\nIntensidade vigorosa equivale a 2× na OMS" if oms['intens']=='vigorosa' and oms['min_card']>0 else ""),
          AZUL_B, AZUL_CARD),
         ("alvo",   "META OMS",
          "150–300 min/sem",
@@ -997,7 +1011,7 @@ def pag_oferta(c,d):
     else: l2="transformar seu corpo."
     c.setFillColor(BR); c.setFont(FB,28); c.drawString(18*mm,H-30*mm,f"{nome}, você tem tudo para")
     c.setFillColor(VN); c.setFont(FB,28); c.drawString(18*mm,H-44*mm,l2)
-    c.setFillColor(CT); c.setFont(FN,10.5); c.drawString(18*mm,H-53*mm,"Escolha seu acesso e comece hoje mesmo.")
+    c.setFillColor(CT); c.setFont(FN,11); c.drawString(18*mm,H-53*mm,"O próximo passo é simples: falar com o Luis.")
     y=H-59*mm
     difs=[("calendario","Protocolo montado do zero pelo Luis"),
           ("camera","Vídeos de todos os exercícios"),
@@ -1005,71 +1019,64 @@ def pag_oferta(c,d):
           ("casa","Treinos para academia e casa")]
     for em,txt in difs:
         c.setStrokeColor(PB); c.setLineWidth(0.4); c.line(18*mm,y-1*mm,W-18*mm,y-1*mm)
-        draw_em(c,em,18*mm,y-0.5*mm,size=5)
-        c.setFillColor(BR); c.setFont(FN,10.5); c.drawString(30*mm,y-8.5*mm,txt)
+        draw_em(c,em,18*mm,y-0.5*mm,size=6)
+        c.setFillColor(BR); c.setFont(FN,11.5); c.drawString(31*mm,y-8.5*mm,txt)
         y-=13*mm
-    c.setStrokeColor(PB); c.setLineWidth(0.4); c.line(18*mm,y,W-18*mm,y); y-=7*mm
-    planos=[
-        ("INDIVIDUAL","1 Protocolo · 60 dias","R$ 119",
-         "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636",False),
-        ("DUPLA","1 Protocolo · 60 dias","R$ 207",
-         "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112637&page=112636",False),
-        ("INDIVIDUAL","3 Protocolos · 180 dias","R$ 297",
-         "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112638&page=112636",True),
-        ("DUPLA","3 Protocolos · 180 dias","R$ 479",
-         "https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112639&page=112636",False),
+    c.setStrokeColor(PB); c.setLineWidth(0.4); c.line(18*mm,y,W-18*mm,y); y-=9*mm
+
+    c.setFillColor(CS); c.setFont(FB,9.5); c.drawString(18*mm,y,"COMO FUNCIONA")
+    y-=6.5*mm
+    passos=[
+        ("chat","1. Chame o Luis","Manda uma mensagem no WhatsApp contando seu objetivo"),
+        ("calendario","2. Receba seu protocolo","Ele monta um plano 100% personalizado pra você"),
+        ("foguete","3. Comece a treinar","Com suporte direto durante toda a jornada"),
     ]
-    pw=(W-40*mm)/2; ph=50*mm; ph_pop=62*mm; gap=4*mm
-    for i,(tit,desc,preco,url,pop) in enumerate(planos):
-        col=i%2; row=i//2; px=18*mm+col*(pw+gap)
-        ph_this=ph_pop if pop else ph
-        py=y-row*(ph+gap)
-        fc2=VD if pop else PC; bc=VN if pop else PB
-        card_d(c,px,py-ph_this,pw,ph_this,fill=fc2,r=4,borda=bc)
-        if pop:
-            # badge
-            badge_w=34*mm; badge_y=py-5*mm
-            c.setFillColor(VN); c.roundRect(px+pw/2-badge_w/2,badge_y-6*mm,badge_w,7*mm,3*mm,fill=1,stroke=0)
-            draw_em(c,"estrela",px+pw/2-badge_w/2+2*mm,badge_y-0.5*mm,size=3.5)
-            c.setFillColor(PF); c.setFont(FB,7.5)
-            c.drawString(px+pw/2-badge_w/2+9*mm,badge_y-4.5*mm,"Mais popular")
-            # titulo
-            c.setFillColor(CT); c.setFont(FB,8.5); c.drawCentredString(px+pw/2,py-15*mm,tit)
-            # preco
-            c.setFillColor(BR); c.setFont(FB,26); c.drawCentredString(px+pw/2,py-28*mm,preco)
-            # descricao bem visivel em verde
-            c.setFillColor(VN); c.setFont(FB,9); c.drawCentredString(px+pw/2,py-38*mm,desc)
-        else:
-            # titulo
-            c.setFillColor(CT); c.setFont(FB,8.5); c.drawCentredString(px+pw/2,py-10*mm,tit)
-            # preco
-            c.setFillColor(BR); c.setFont(FB,26); c.drawCentredString(px+pw/2,py-26*mm,preco)
-            # descricao
-            c.setFillColor(CT); c.setFont(FN,9); c.drawCentredString(px+pw/2,py-33*mm,desc)
-        # botao sempre a 6mm do fundo do card
-        bx=px+4*mm; bw2=pw-8*mm; bh=10*mm; by=py-ph_this+6*mm
-        c.setFillColor(VN2); c.roundRect(bx,by,bw2,bh,3*mm,fill=1,stroke=0)
-        c.setFillColor(PF); c.setFont(FB,9.5); c.drawCentredString(bx+bw2/2,by+3.5*mm,"Escolher")
-        c.linkURL(url,(bx,by,bx+bw2,by+bh),relative=0)
-    y_cta=y-(ph+gap)-ph_pop-gap-7*mm; bwc=W-36*mm
-    c.setFillColor(VN2); c.roundRect(18*mm,y_cta-15*mm,bwc,16*mm,4*mm,fill=1,stroke=0)
-    draw_em(c,"foguete",22*mm,y_cta-1.5*mm,size=5.5)
-    c.setFillColor(PF); c.setFont(FB,12.5); c.drawCentredString(W/2+3*mm,y_cta-9*mm,"Começar meu protocolo agora")
-    c.linkURL("https://pages.mfitpersonal.com.br/index?acao=page&tipo=2&buyPage=112636&page=112636",
-              (18*mm,y_cta-15*mm,18*mm+bwc,y_cta),relative=0)
-    y_selos=y_cta-22*mm
-    c.setFillColor(CS); c.setFont(FN,8)
-    c.drawCentredString(W/2,y_selos,"Pagamento 100% seguro . Suporte via WhatsApp")
-    # selos de garantia
-    y_selos-=8*mm
-    selos=[("cadeado","Pagamento\nseguro"),("chat","Suporte\nWhatsApp"),("ok","Satisfação\ngarantida"),("estrela","4.9/5\navaliacoes")]
+    gap3=4*mm; pw3=(W-36*mm-2*gap3)/3; ph3=44*mm
+    for i,(em,tit,desc) in enumerate(passos):
+        px=18*mm+i*(pw3+gap3)
+        card_d(c,px,y-ph3,pw3,ph3,fill=PC,r=4,borda=PB)
+        c.setFillColor(VN); c.circle(px+pw3/2,y-9.5*mm,5*mm,fill=1,stroke=0)
+        c.setFillColor(PF); c.setFont(FB,12); c.drawCentredString(px+pw3/2,y-11.7*mm,str(i+1))
+        draw_em(c,em,px+pw3/2-3.5*mm,y-21.5*mm,size=6.5)
+        wrap(c,tit.split(". ",1)[-1],px+2*mm,y-29*mm,pw3-4*mm,size=10,cor=BR,leading=12,align=TA_CENTER)
+        wrap(c,desc,px+2*mm,y-35.5*mm,pw3-4*mm,size=8.5,cor=CT,leading=10.5,align=TA_CENTER)
+    y-=ph3+10*mm
+
+    bwc=W-36*mm; bh_cta=18*mm
+    c.setFillColor(VN2); c.roundRect(18*mm,y-bh_cta,bwc,bh_cta,4*mm,fill=1,stroke=0)
+    draw_em(c,"chat",23*mm,y-9*mm,size=7.5)
+    c.setFillColor(PF); c.setFont(FB,15); c.drawCentredString(W/2+4*mm,y-9*mm,"Falar com o Luis no WhatsApp")
+    c.setFillColor(PF); c.setFont(FN,9.5); c.drawCentredString(W/2+4*mm,y-14.5*mm,"Resposta rápida")
+    c.linkURL(whats_link(d),(18*mm,y-bh_cta,18*mm+bwc,y),relative=0)
+    y-=bh_cta+9*mm
+
+    c.setFillColor(CS); c.setFont(FN,9)
+    c.drawCentredString(W/2,y,"Sem compromisso . Tire suas dúvidas antes de decidir")
+    y-=8.5*mm
+    selos=[("chat","Resposta\nrápida"),("ok","Satisfação\ngarantida"),("estrela","4.9/5\navaliações"),("trofeu","+1000\nalunos")]
     sw2=(W-36*mm)/4
     for i,(em,lbl) in enumerate(selos):
         sx=18*mm+i*sw2+sw2/2
-        draw_em(c,em,sx-3*mm,y_selos,size=4.5)
-        c.setFillColor(CS); c.setFont(FN,7)
+        draw_em(c,em,sx-3.5*mm,y,size=5.5)
+        c.setFillColor(CS); c.setFont(FN,8)
         for j,ln in enumerate(lbl.split('\n')):
-            c.drawCentredString(sx,y_selos-9*mm-j*7,ln)
+            c.drawCentredString(sx,y-9.5*mm-j*7.5,ln)
+    y-=27*mm
+
+    # Reforço de confiança/urgência — preenche o espaço restante da página
+    ch_raz=42*mm
+    card_d(c,18*mm,y-ch_raz,W-36*mm,ch_raz,fill=PC,r=4,borda=PB)
+    c.setFillColor(VN); c.setFont(FB,11.5); c.drawString(24*mm,y-10.5*mm,"Por que falar com o Luis agora?")
+    razoes=[
+        ("relogio","Vagas limitadas por mês, pra manter o acompanhamento próximo com cada aluno"),
+        ("alvo","Quanto antes você começa, antes o protocolo começa a trabalhar a seu favor"),
+        ("chat","Conversar não custa nada, tire suas dúvidas antes de decidir qualquer coisa"),
+    ]
+    yr=y-19*mm
+    for em,txt in razoes:
+        draw_em(c,em,24*mm,yr+1*mm,size=5.5)
+        wrap(c,txt,34*mm,yr+2*mm,W-59*mm,size=10,cor=CT,leading=12.5)
+        yr-=10*mm
     rodape_d(c,8); c.showPage()
 
 # ── PÁG 9: DEPOIMENTOS (DARK) ─────────────────────────────────────────────────
@@ -1113,12 +1120,18 @@ def pag_dep(c,d):
         c.setFillColor(VN); c.setFont(FB,9); c.drawString(dx+4*mm,y-30*mm,nm)
     y-=38*mm
 
-    # CTA final — duas linhas separadas
-    ycc=y-5*mm; chc=28*mm
+    # CTA final — texto + botão de WhatsApp
+    ycc=y-5*mm; chc=48*mm
     card_d(c,18*mm,ycc-chc,W-36*mm,chc,fill=VD,r=4,borda=VN)
     nline(c,18*mm,ycc,W-36*mm,2.5)
     c.setFillColor(BR); c.setFont(FB,20); c.drawCentredString(W/2,ycc-12*mm,f"{nome},")
     c.setFillColor(VN); c.setFont(FB,20); c.drawCentredString(W/2,ycc-24*mm,"agora é a sua vez.")
+    bwc=W-44*mm; bh_cta=15*mm; bx=18*mm+4*mm; by=ycc-chc+5*mm
+    c.setFillColor(VN2); c.roundRect(bx,by,bwc,bh_cta,4*mm,fill=1,stroke=0)
+    draw_em(c,"chat",bx+4*mm,by+bh_cta-3.5*mm,size=5)
+    c.setFillColor(PF); c.setFont(FB,12)
+    c.drawCentredString(bx+bwc/2+3*mm,by+bh_cta/2-12*0.35,"Falar com o Luis no WhatsApp")
+    c.linkURL(whats_link(d),(bx,by,bx+bwc,by+bh_cta),relative=0)
     rodape_d(c,9); c.showPage()
 
 # ── PRINCIPAL ──────────────────────────────────────────────────────────────────
@@ -1142,3 +1155,4 @@ if __name__=="__main__":
     pdf=gerar_pdf_diagnostico(dados)
     with open("/mnt/user-data/outputs/diagnostico_v9.pdf","wb") as f: f.write(pdf)
     print("OK — 9 páginas")
+    
