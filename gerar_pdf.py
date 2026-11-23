@@ -14,7 +14,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 W, H = A4
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EMOJI_DIR = os.path.join(BASE_DIR, "emojis")
-TOTAL_PAGES = 9
+TOTAL_PAGES = 8
 
 # Número do WhatsApp do Luis, usado em todos os botões de contato do PDF
 WHATS_NUM = "5545991232755"
@@ -510,7 +510,7 @@ def pag_capa(c,d):
     items=[("alvo","Análise biométrica completa: IMC e composição corporal"),
            ("bike","Análise detalhada de cardio vs. recomendações da OMS"),
            ("brilho","Dicas práticas personalizadas para a sua rotina"),
-           ("cadeado","Planos com preços e link direto de acesso")]
+           ("foguete","Seu próximo passo para começar com o Luis")]
     for i,(em,txt) in enumerate(items):
         ys=y_s-9*mm-i*9*mm
         draw_em(c,em,18*mm,ys+1*mm,size=4.5)
@@ -1077,7 +1077,7 @@ def pag_oferta(c,d):
         draw_em(c,em,24*mm,yr+1*mm,size=5.5)
         wrap(c,txt,34*mm,yr+2*mm,W-59*mm,size=10,cor=CT,leading=12.5)
         yr-=10*mm
-    rodape_d(c,8); c.showPage()
+    rodape_d(c,7); c.showPage()
 
 # ── PÁG 9: DEPOIMENTOS (DARK) ─────────────────────────────────────────────────
 def pag_dep(c,d):
@@ -1132,7 +1132,7 @@ def pag_dep(c,d):
     c.setFillColor(PF); c.setFont(FB,12)
     c.drawCentredString(bx+bwc/2+3*mm,by+bh_cta/2-12*0.35,"Falar com o Luis no WhatsApp")
     c.linkURL(whats_link(d),(bx,by,bx+bwc,by+bh_cta),relative=0)
-    rodape_d(c,9); c.showPage()
+    rodape_d(c,8); c.showPage()
 
 # ── PRINCIPAL ──────────────────────────────────────────────────────────────────
 def gerar_pdf_diagnostico(dados):
@@ -1142,7 +1142,7 @@ def gerar_pdf_diagnostico(dados):
         iv=calc_imc(dados.get("peso"),dados.get("altura"))
         if iv: dados["imc"]=iv
     pag_capa(cv,dados); pag_bio(cv,dados); pag_hab(cv,dados); pag_perfil(cv,dados)
-    pag_dicas(cv,dados); pag_oms(cv,dados); pag_app(cv,dados); pag_oferta(cv,dados); pag_dep(cv,dados)
+    pag_dicas(cv,dados); pag_oms(cv,dados); pag_oferta(cv,dados); pag_dep(cv,dados)
     cv.save(); buf.seek(0); return buf.read()
 
 if __name__=="__main__":
@@ -1154,5 +1154,4 @@ if __name__=="__main__":
            "compro":"8","origem":"luana"}
     pdf=gerar_pdf_diagnostico(dados)
     with open("/mnt/user-data/outputs/diagnostico_v9.pdf","wb") as f: f.write(pdf)
-    print("OK — 9 páginas")
-    
+    print("OK — 8 páginas")
